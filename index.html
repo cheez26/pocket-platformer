@@ -4,16 +4,6 @@
 <head>
     <meta charset="UTF-8">
     <title>Pocket Platformer</title>
-    <script>
-        window.onbeforeunload = function (e) {
-            e = e || window.event;
-            // For IE and Firefox prior to version 4
-            if (e) {
-                e.returnValue = 'Are you sure you want to close? Your progress will be lost.';
-            }
-            return 'Are you sure you want to close? Your progress will be lost.';
-        };
-    </script>
 </head>
 
 <body>

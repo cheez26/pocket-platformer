@@ -18,6 +18,13 @@ class SpritePixelArrays {
       select: "select",
     }
 
+    this.sometimesPassableBlocks = [
+      ObjectTypes.RED_BLOCK,
+      ObjectTypes.BLUE_BLOCK,
+      ObjectTypes.PINK_BLOCK,
+      ObjectTypes.VIOLET_BLOCK,
+    ];
+
     this.tilesWithAnimation = [
       ObjectTypes.RED_BLUE_BLOCK_SWITCH,
       ObjectTypes.RED_BLOCK,
@@ -858,16 +865,15 @@ class SpritePixelArrays {
       descriptiveName: "Violet block",
       description: "There are violet blocks and pink blocks. They will alternate between passable and solid on each jump.",
       type: this.SPRITE_TYPES.tile,
-      squishAble: false,
       animation: [{
         sprite:
           [
             ["AA55FF", "AA55FF", "AA55FF", "AA55FF", "AA55FF", "AA55FF", "AA55FF", "AA55FF"],
             ["AA55FF", "632A9B", "632A9B", "632A9B", "632A9B", "632A9B", "632A9B", "390071"],
-            ["AA55FF", "632A9B", "632A9B", "632A9B", "632A9B", "632A9B", "632A9B", "390071"],
-            ["AA55FF", "632A9B", "632A9B", "632A9B", "632A9B", "632A9B", "632A9B", "390071"],
-            ["AA55FF", "632A9B", "632A9B", "632A9B", "632A9B", "632A9B", "632A9B", "390071"],
-            ["AA55FF", "632A9B", "632A9B", "632A9B", "632A9B", "632A9B", "632A9B", "390071"],
+            ["AA55FF", "632A9B", "390071", "390071", "390071", "390071", "632A9B", "390071"],
+            ["AA55FF", "632A9B", "390071", "AA55FF", "632A9B", "390071", "632A9B", "390071"],
+            ["AA55FF", "632A9B", "390071", "632A9B", "632A9B", "390071", "632A9B", "390071"],
+            ["AA55FF", "632A9B", "390071", "390071", "390071", "390071", "632A9B", "390071"],
             ["AA55FF", "632A9B", "632A9B", "632A9B", "632A9B", "632A9B", "632A9B", "390071"],
             ["AA55FF", "390071", "390071", "390071", "390071", "390071", "390071", "390071"],
           ]
@@ -893,16 +899,15 @@ class SpritePixelArrays {
       descriptiveName: "Pink block",
       description: "There are violet blocks and pink blocks. They will alternate between passable and solid on each jump.",
       type: this.SPRITE_TYPES.tile,
-      squishAble: false,
       animation: [{
         sprite:
           [
             ["FF8EFF", "FF8EFF", "FF8EFF", "FF8EFF", "FF8EFF", "FF8EFF", "FF8EFF", "FF8EFF"],
             ["FF8EFF", "E300E3", "E300E3", "E300E3", "E300E3", "E300E3", "E300E3", "AA00AA"],
-            ["FF8EFF", "E300E3", "E300E3", "E300E3", "E300E3", "E300E3", "E300E3", "AA00AA"],
-            ["FF8EFF", "E300E3", "E300E3", "E300E3", "E300E3", "E300E3", "E300E3", "AA00AA"],
-            ["FF8EFF", "E300E3", "E300E3", "E300E3", "E300E3", "E300E3", "E300E3", "AA00AA"],
-            ["FF8EFF", "E300E3", "E300E3", "E300E3", "E300E3", "E300E3", "E300E3", "AA00AA"],
+            ["FF8EFF", "E300E3", "AA00AA", "AA00AA", "AA00AA", "AA00AA", "E300E3", "AA00AA"],
+            ["FF8EFF", "E300E3", "AA00AA", "FF8EFF", "E300E3", "AA00AA", "E300E3", "AA00AA"],
+            ["FF8EFF", "E300E3", "AA00AA", "E300E3", "E300E3", "AA00AA", "E300E3", "AA00AA"],
+            ["FF8EFF", "E300E3", "AA00AA", "AA00AA", "AA00AA", "AA00AA", "E300E3", "AA00AA"],
             ["FF8EFF", "E300E3", "E300E3", "E300E3", "E300E3", "E300E3", "E300E3", "AA00AA"],
             ["FF8EFF", "AA00AA", "AA00AA", "AA00AA", "AA00AA", "AA00AA", "AA00AA", "AA00AA"],
           ]
@@ -2077,7 +2082,7 @@ class SpritePixelArrays {
       name: ObjectTypes.SFX,
       directions: [AnimationHelper.facingDirections.bottom, AnimationHelper.facingDirections.left, AnimationHelper.facingDirections.top, AnimationHelper.facingDirections.right],
       descriptiveName: "SFX 3",
-      description: "SFX when player dashes",
+      description: "SFX when player dies",
       animation: [{
         sprite:
           [
@@ -2396,6 +2401,40 @@ class SpritePixelArrays {
             ["transp", "transp", "transp", "transp", "transp", "transp", "transp", "transp"],
           ]
       },
+      ]
+    };
+
+    this.SFX14 = {
+      name: ObjectTypes.SFX,
+      descriptiveName: "SFX 13",
+      directions: [AnimationHelper.facingDirections.left, AnimationHelper.facingDirections.top, AnimationHelper.facingDirections.right, AnimationHelper.facingDirections.bottom],
+      description: "Plays when the player dashes",
+      animation: [{
+        sprite:
+          [
+            ["transp", "transp", "transp", "transp", "transp", "transp", "transp", "transp"],
+            ["transp", "transp", "transp", "transp", "transp", "transp", "transp", "transp"],
+            ["transp", "transp", "transp", "transp", "transp", "transp", "transp", "transp"],
+            ["transp", "transp", "transp", "393939", "393939", "transp", "transp", "transp"],
+            ["transp", "transp", "transp", "393939", "393939", "transp", "transp", "transp"],
+            ["transp", "transp", "transp", "transp", "transp", "transp", "transp", "transp"],
+            ["transp", "transp", "transp", "transp", "transp", "transp", "transp", "transp"],
+            ["transp", "transp", "transp", "transp", "transp", "transp", "transp", "transp"],
+          ]
+      },
+      {
+        sprite:
+          [
+            ["transp", "transp", "transp", "transp", "transp", "transp", "transp", "transp"],
+            ["transp", "transp", "transp", "transp", "transp", "transp", "transp", "transp"],
+            ["transp", "transp", "393939", "transp", "transp", "393939", "transp", "transp"],
+            ["transp", "transp", "transp", "transp", "transp", "transp", "transp", "transp"],
+            ["transp", "transp", "transp", "transp", "transp", "transp", "transp", "transp"],
+            ["transp", "transp", "393939", "transp", "transp", "393939", "transp", "transp"],
+            ["transp", "transp", "transp", "transp", "transp", "transp", "transp", "transp"],
+            ["transp", "transp", "transp", "transp", "transp", "transp", "transp", "transp"],
+          ]
+      }
       ]
     };
 

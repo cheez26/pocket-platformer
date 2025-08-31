@@ -8,6 +8,8 @@ class TransitionAnimationHandler {
             cutOutCircle: "cutOutCircle",
             wholeScreen: "wholeScreen"
         }
+        this.currentAnimationType = null;
+        this.currentAnimationFrames = null;
     }
 
     static changeAnimationType(event) {
@@ -21,8 +23,8 @@ class TransitionAnimationHandler {
     }
 
     static displayTransition() {
-        const halfAnimationFrames = this.animationFrames / 2;
-        const totalBlackFrames = this.animationFrames > 24 ? 4 : 0;
+        const halfAnimationFrames = this.currentAnimationFrames / 2;
+        const totalBlackFrames = this.currentAnimationFrames > 24 ? 4 : 0;
 
         if (tileMapHandler.checkIfStartOrEndingLevel()) {
             PlayMode.currentPauseFrames = 0;
@@ -33,7 +35,7 @@ class TransitionAnimationHandler {
         //fade in
         if (PlayMode.currentPauseFrames > fadeInFrames) {
             const currentFrame = fadeInFrames - (PlayMode.currentPauseFrames - fadeInFrames);
-            switch (this.animationType) {
+            switch (this.currentAnimationType) {
                 case this.animationTypes.tiles:
                     this.animateFade(currentFrame, fadeInFrames);
                     break;
@@ -48,7 +50,7 @@ class TransitionAnimationHandler {
         }
         //fade out
         else if (PlayMode.currentPauseFrames < fadeOutFrames) {
-            switch (this.animationType) {
+            switch (this.currentAnimationType) {
                 case this.animationTypes.tiles:
                     this.animateFade(PlayMode.currentPauseFrames, fadeOutFrames);
                     break;
@@ -62,7 +64,7 @@ class TransitionAnimationHandler {
         }
         //stay black for some frames
         else {
-            if (this.animationType !== this.animationTypes.none) {
+            if (this.currentAnimationType !== this.animationTypes.none) {
                 Display.drawRectangle(Camera.viewport.left,
                     Camera.viewport.top,
                     Camera.viewport.width,
@@ -81,7 +83,7 @@ class TransitionAnimationHandler {
         Display.ctx.fillStyle = `rgb(0,0,0)`;
         Display.ctx.beginPath();
         Display.ctx.rect(Camera.viewport.left, Camera.viewport.top, Camera.viewport.width, Camera.viewport.height);
-        Display.ctx.arc(player.x + tileMapHandler.tileSize / 2, player.y + tileMapHandler.tileSize / 2, 
+        Display.ctx.arc(player.x + tileMapHandler.halfTileSize, player.y + tileMapHandler.halfTileSize, 
             radius, 0, 2 * Math.PI, true);
         Display.ctx.fill();
         Display.ctx.closePath();

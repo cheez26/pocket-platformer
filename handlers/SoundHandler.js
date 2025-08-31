@@ -15,6 +15,7 @@ class SoundHandler {
     this.barrelDefault = Base64Sounds.barrelBase64;
     this.jumpResetDefault = Base64Sounds.jumpResetBase64;
     this.powerUpDefault = Base64Sounds.powerUpBase64;
+    this.silence = Base64Sounds.silence;
     this.songDefault = "";
 
     this.sounds = [
@@ -32,6 +33,11 @@ class SoundHandler {
       { key: "barrel", descriptiveName: "barrel", value: this.barrelDefault, type: "sound" },
       { key: "powerUp", descriptiveName: "powerUp", value: this.powerUpDefault, type: "sound" },
       { key: "jumpReset", descriptiveName: "jump reset", value: this.jumpResetDefault, type: "sound" },
+      { key: "custom1", descriptiveName: "custom 1", value: this.silence, type: "sound" },
+      { key: "custom2", descriptiveName: "custom 2", value: this.silence, type: "sound" },
+      { key: "custom3", descriptiveName: "custom 3", value: this.silence, type: "sound" },
+      { key: "custom4", descriptiveName: "custom 4", value: this.silence, type: "sound" },
+      { key: "custom5", descriptiveName: "custom 5", value: this.silence, type: "sound" },
       { key: "song", descriptiveName: "", value: "", type: "music" },
       //{ key: "build", value: "https://drive.google.com/uc?export=download&id=1hgwOVAX30LJ9A71xoAU8IGnXwcm6L2Fc"},
     ];
@@ -48,21 +54,24 @@ class SoundHandler {
 
   static checkSongOnLevelReset(currentLevelIndex) {
     const { song } = WorldDataHandler.levels[currentLevelIndex];
+    this.changeSong(song);
+  }
 
+  static changeSong(song) {
     // if no song currently playing, set new current song
-    if(!this.currentSong && song) {
+    if (!this.currentSong && song) {
       this.currentSong = song;
       Game.playMode === Game.PLAY_MODE && this[this.currentSong].stopAndPlay();
     }
     // if other song is currently playing, change song
-    else if(song && this.currentSong && this.currentSong !== song) {
+    else if (song && this.currentSong && this.currentSong !== song) {
       this[this.currentSong].stop();
       this[this.currentSong].currentTime = 0;
       this.currentSong = song;
       Game.playMode === Game.PLAY_MODE && this[this.currentSong].stopAndPlay();
     }
     // if song is playing, but current level has no song, stop song
-    else if(this.currentSong && !song) {
+    else if (this.currentSong && !song) {
       this[this.currentSong].stop();
       this[this.currentSong].currentTime = 0;
       this.currentSong = null;

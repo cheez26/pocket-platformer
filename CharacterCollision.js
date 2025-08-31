@@ -73,12 +73,14 @@ class CharacterCollision {
     static checkTileCollisions(obj, cornerCorrection = false) {
         obj.y += obj.yspeed;
         this.getEdges(obj);
-
         // collision to the bottom
         if (obj.yspeed > 0) {
             if (!MathHelpers.arraysHaveSameValues([obj.bottom_right, obj.bottom_left, ...obj.extraBottomPoints], [0])) {
+
                 // not a cloud...
-                if (!MathHelpers.arraysHaveSameValues([obj.bottom_right, obj.bottom_left, ...obj.extraBottomPoints], [5])) {
+                if (obj.bottom_right !== 5 &&
+                    obj.bottom_left !== 5
+                ) {
                     obj.y = obj.bottom * tileMapHandler.tileSize - (obj.height + 1);
                     obj.hitWall(AnimationHelper.facingDirections.bottom);
 
@@ -103,7 +105,7 @@ class CharacterCollision {
         // collision to the top
         else if (obj.yspeed < 0) {
             if (!MathHelpers.arraysHaveSameValues([obj.top_right, obj.top_left, ...obj.extraTopPoints], this.passableTiles)) {
-                cornerCorrection  && obj.width < tileMapHandler.tileSize ? this.checkTopCornerCorrection(obj) : this.correctTopPosition(obj);
+                cornerCorrection ? this.checkTopCornerCorrection(obj) : this.correctTopPosition(obj);;
             }
         }
 
@@ -157,7 +159,7 @@ class CharacterCollision {
             (Collision.pointAndObjectColliding(obj.bottom_right_pos, hitBox) ||
                 Collision.pointAndObjectColliding(obj.bottom_left_pos, hitBox))
         ) {
-            obj.hitWall(AnimationHelper.facingDirections.bottom);
+        obj.hitBottom(true);
             obj.y = movingPlatform.y - obj.height;
             obj.movingPlatformKey = movingPlatform.key;
             obj.onMovingPlatform = true;
@@ -166,7 +168,7 @@ class CharacterCollision {
 
     static checkTopCornerCorrection(obj) {
         const offset = Math.floor(this.tileMapHandler.tileSize / 4)
-        const topY = obj.top_right_pos.y - Math.floor(this.tileMapHandler.tileSize / 2);
+        const topY = obj.top_right_pos.y - Math.floor(this.tileMapHandler.halfTileSize);
         const rightX = obj.top_right_pos.x - offset;
         const leftX = obj.top_left_pos.x + offset;
         const rightTileVaue = tileMapHandler.getTileValueForPosition(rightX);
@@ -175,10 +177,13 @@ class CharacterCollision {
         const topRightTileValue = tileMapHandler.getTileLayerValueByIndex(topValue, rightTileVaue);
         const topLeftTileValue = tileMapHandler.getTileLayerValueByIndex(topValue, leftTileVaue);
         const touchingSwitch = [obj.top_left, obj.top_right].includes(ObjectTypes.SPECIAL_BLOCK_VALUES.redBlueSwitch);
-        if (!touchingSwitch && this.passableTiles.includes(topRightTileValue) && this.passableTiles.includes(obj.top_left)) {
-            obj.x = rightTileVaue * this.tileMapHandler.tileSize;
+
+        if (!touchingSwitch && this.passableTiles.includes(topRightTileValue) && this.passableTiles.includes(obj.top_left)
+            && MathHelpers.arraysHaveSameValues([...obj.extraTopPoints], this.passableTiles)) {
+            obj.x = (rightTileVaue + 1) * this.tileMapHandler.tileSize - obj.width - 1;
         }
-        else if (!touchingSwitch && this.passableTiles.includes(topLeftTileValue) && this.passableTiles.includes(obj.top_right)) {
+        else if (!touchingSwitch && this.passableTiles.includes(topLeftTileValue) && this.passableTiles.includes(obj.top_right)
+            && MathHelpers.arraysHaveSameValues([...obj.extraTopPoints], this.passableTiles)) {
             obj.x = leftTileVaue * this.tileMapHandler.tileSize + 1;
         }
         else {
@@ -202,6 +207,7 @@ class CharacterCollision {
             const right_foot = this.tileMapHandler.tileMap[foot_y][right_foot_x];
             const allBottomFootPos = [left_foot, ...extra_foot, right_foot];
             current_tile = allBottomFootPos.find((element) => element !== 0) || right_foot;
+            //current_tile = left_foot !== 0 ? left_foot : right_foot;
         }
 
         obj.bonusSpeedX && !obj.onMovingPlatform && obj.slowDownBonusSpeedX();

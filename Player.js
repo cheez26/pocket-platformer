@@ -90,7 +90,6 @@ class Player {
     updateExtraColissionPoints() {
         this.extraHeightPoints = Math.floor((this.height + 3) / this.tileSize);
         this.heightForExtraColissionPoints = this.extraHeightPoints ? Math.round(this.height / (this.extraHeightPoints + 1)) : 0;
-
         this.extraWidthPoints = Math.floor((this.width + 2) / this.tileSize);
         this.widthForExtraColissionPoints = this.extraWidthPoints ? Math.round(this.width / (this.extraWidthPoints + 1)) : 0;
     }
@@ -223,8 +222,12 @@ class Player {
     setAnimationProperties() {
         this.facingDirection = AnimationHelper.facingDirections.right;
         this.spriteIndexIdle = SpritePixelArrays.getIndexOfSprite(ObjectTypes.PLAYER_IDLE);
+        const idleSprite = SpritePixelArrays.getSpritesByIndex(this.spriteIndexIdle);
+        this.spriteIndexIdleCanvasYPos = idleSprite.canvasYPos;
         this.spriteIndexJump = SpritePixelArrays.getIndexOfSprite(ObjectTypes.PLAYER_JUMP);
+        this.spriteIndexJumpCanvasYPos = SpritePixelArrays.getSpritesByIndex(this.spriteIndexJump).canvasYPos;
         this.spriteIndexWalk = SpritePixelArrays.getIndexOfSprite(ObjectTypes.PLAYER_WALK);
+        this.spriteIndexWalkCanvasYPos = SpritePixelArrays.getSpritesByIndex(this.spriteIndexWalk).canvasYPos;
         this.animationLengths = {
             [this.spriteIndexIdle]: SpritePixelArrays.PLAYER_IDLE_SPRITE.animation.length,
             [this.spriteIndexJump]: SpritePixelArrays.PLAYER_JUMP_SPRITE.animation.length,
@@ -233,17 +236,22 @@ class Player {
         this.spriteObject = SpritePixelArrays.PLAYER_JUMP_SPRITE;
         this.currentSpriteIndex = this.spriteIndexIdle;
         this.currentAnimationIndex = 0;
+        this.originalHeight = idleSprite.animation[0].sprite.length * WorldDataHandler.pixelArrayUnitSize;
+        this.originalWidth = idleSprite.animation[0].sprite[0].length * WorldDataHandler.pixelArrayUnitSize;
+        this.height = this.originalHeight - this.heightOffset;
+        this.width = this.originalWidth - this.widthOffset;
     }
 
     resetAnimationAttributes() {
         AnimationHelper.setInitialSquishValues(this, this.width + this.widthOffset, this.height + this.heightOffset);
     }
 
-    setAnimationState(newAnimationState) {
+    setAnimationState(newAnimationState, animationCanvasYPos) {
         if (this.currentSpriteIndex !== newAnimationState) {
             this.currentAnimationIndex = 0;
         }
         this.currentSpriteIndex = newAnimationState;
+        this.currentAnimationCanvasYPos = animationCanvasYPos;
     }
 
     checkTrailType() {
@@ -264,7 +272,9 @@ class Player {
         }
 
         if (this.currentTrailFrame === finalFrame) {
-            SFXHandler.createSFX(this.bottom_left_pos.x, this.bottom_left_pos.y - this.tileSize + 1,
+            const leftPos = this.facingDirection === AnimationHelper.facingDirections.right
+                ? this.bottom_left_pos.x : this.bottom_right_pos.x - this.tileSize;
+            SFXHandler.createSFX(leftPos, this.bottom_left_pos.y - this.tileSize + 1,
                 sfxIndex, this.facingDirection, 0, 0, true)
             this.currentTrailFrame = 0;
         }
@@ -277,15 +287,15 @@ class Player {
         switch (this.deathType) {
             case this.deathTypes.explode:
                 this.radians += 0.15;
-                Display.explodeSprite(this.spriteCanvas, animationIndex, this.currentSpriteIndex, this.tileSize,
-                    this.x, this.y, offSet, this.radians);
+                Display.explodeSprite(this.spriteCanvas, animationIndex * this.originalWidth, this.currentAnimationCanvasYPos,
+                    this.originalHeight, this.x, this.y, offSet, this.radians);
                 break;
             case this.deathTypes.upwardsAndRotate:
                 this.y -= 2;
                 this.radians += 0.25;
-                Display.drawImageWithRotation(this.spriteCanvas, animationIndex * this.tileSize,
-                    this.currentSpriteIndex * this.tileSize, this.tileSize,
-                    this.tileSize - 1, this.x, this.y - 2,
+                Display.drawImageWithRotation(this.spriteCanvas, animationIndex * this.originalWidth,
+                    this.currentAnimationCanvasYPos, this.originalWidth,
+                    this.originalHeight - 1, this.x, this.y - 2,
                     this.drawWidth, this.drawHeight, this.radians);
                 break;
             default:
@@ -303,13 +313,13 @@ class Player {
         }
 
         if (this.xspeed === 0 && this.yspeed === 0) {
-            this.setAnimationState(this.spriteIndexIdle);
+            this.setAnimationState(this.spriteIndexIdle, this.spriteIndexIdleCanvasYPos);
         }
         else if (this.xspeed !== 0 && this.yspeed === 0) {
-            this.setAnimationState(this.spriteIndexWalk);
+            this.setAnimationState(this.spriteIndexWalk, this.spriteIndexWalkCanvasYPos);
         }
         if (this.yspeed !== 0 || this.falling) {
-            this.setAnimationState(this.spriteIndexJump);
+            this.setAnimationState(this.spriteIndexJump, this.spriteIndexJumpCanvasYPos);
         }
 
         if ((this.wallJumpRight || this.wallJumpLeft) && this.yspeed > 0) {
@@ -320,6 +330,13 @@ class Player {
         }
 
         this.checkTrailAnimation();
+
+        // jump trail
+        /*
+        if((this.jumping || this.falling) && tileMapHandler.currentGeneralFrameCounter % 3 === 0) {
+            SFXHandler.createSFX(this.x, this.y,
+                1, this.facingDirection, 0, 0, true);
+        }*/
 
         const animationLength = this.animationLengths[this.currentSpriteIndex];
 
@@ -349,15 +366,15 @@ class Player {
 
         if (this.fixedSpeed) {
             this.radians += 0.25;
-            Display.drawImageWithRotation(this.spriteCanvas, animationIndex * this.tileSize,
-                this.currentSpriteIndex * this.tileSize, this.tileSize,
-                this.tileSize - 1, this.x - this.squishXOffset, this.y - 2 - this.squishYOffset,
+            Display.drawImageWithRotation(this.spriteCanvas, animationIndex * this.originalWidth,
+                this.currentAnimationCanvasYPos, this.originalWidth,
+                this.originalHeight - 1, this.x - this.squishXOffset, this.y - 2 - this.squishYOffset,
                 this.drawWidth, this.drawHeight, this.radians);
         }
         else {
-            !this.invisible && Display.drawImage(this.spriteCanvas, animationIndex * this.tileSize,
-                this.currentSpriteIndex * this.tileSize, this.tileSize,
-                this.tileSize - 1, this.x - this.squishXOffset, this.y - 2 - this.squishYOffset,
+            !this.invisible && Display.drawImage(this.spriteCanvas, animationIndex * this.originalWidth,
+                this.currentAnimationCanvasYPos, this.originalWidth,
+                this.originalHeight - 1, this.x - this.squishXOffset, this.y - 2 - this.squishYOffset,
                 this.drawWidth, this.drawHeight);
         }
     }
@@ -450,11 +467,13 @@ class Player {
         this.resetJump();
     }
 
-    hitBottom() {
+    hitBottom(onPlatform) {
         this.verticalHit();
         this.bonusSpeedX = 0;
         this.jumpframes = 0;
-        this.jumpPressedToTheMax = true;
+        if (onPlatform) {
+            this.jumpPressedToTheMax = true;
+        }
         this.resetDoubleJump();
         this.setSquishAnimation();
     }
@@ -465,7 +484,7 @@ class Player {
         this.jumpframes = this.maxJumpFrames;
         this.jumpPressedToTheMax = true;
 
-        if(this.onMovingPlatform) {
+        if (this.onMovingPlatform) {
             PlayMode.playerDeath();
         }
     }

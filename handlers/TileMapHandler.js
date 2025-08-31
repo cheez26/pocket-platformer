@@ -3,6 +3,7 @@ class TileMapHandler {
     constructor(tileSize, startingLevel, spriteCanvas, player) {
         this.setTileTypes();
         this.tileSize = tileSize;
+        this.halfTileSize = tileSize / 2;
         this.pixelArrayUnitAmount = 8;
         this.pixelArrayUnitSize = tileSize / this.pixelArrayUnitAmount;
         this.player = player;
@@ -20,14 +21,32 @@ class TileMapHandler {
     setTileTypes() {
         this.TILE_TYPES = {};
         SpritePixelArrays.allTileSprites().forEach(sprite => {
-            this.TILE_TYPES[sprite.name] = SpritePixelArrays.getIndexOfSprite(sprite.name);
+            const canvasYPos = SpritePixelArrays.getCanvasSpriteYPosition(SpritePixelArrays.getIndexOfSprite(sprite.name));
+            this.TILE_TYPES[sprite.name] = canvasYPos;
         });
+    }
+
+    updateYCanvasAttributeForSetObjects() {
+        this.levelObjects.forEach(levelObject => {
+            if (levelObject.extraAttributes.customName) {
+                const spriteObject = SpritePixelArrays.getSpritesByDescrpitiveName(levelObject.extraAttributes.customName);
+                levelObject.canvasYSpritePos = spriteObject?.[0].canvasYPos;
+            }
+        })
+        this.deko.forEach(dekoObject => {
+            const spriteIndex = SpritePixelArrays.getIndexOfSprite(dekoObject.type, dekoObject.dekoIndex);
+            const spriteObject = [SpritePixelArrays.getSpritesByIndex(spriteIndex)];
+            const canvasYSpritePos = spriteObject?.[0].canvasYPos;
+            dekoObject.canvasYSpritePos = canvasYSpritePos;
+        })
+        this.setTileTypes();
     }
 
     resetLevel(levelIndex) {
         SFXHandler.resetSfx();
         this.tileMap = WorldDataHandler.levels[levelIndex].tileData;
         Camera.updateViewportRelatedToScale(WorldDataHandler.levels[levelIndex].zoomFactor || 1)
+        ImageHandler.setBackgroundImage();
         this.updateLevelDimensions();
         this.setInitialPlayerAndCameraPos(levelIndex);
         this.levelObjects = [];
@@ -45,7 +64,7 @@ class TileMapHandler {
     }
 
     changeJumpSwitchBlockType() {
-        if(this.currentJumpSwitchBlockType === this.jumpSwitchBlockTypes.violet) {
+        if (this.currentJumpSwitchBlockType === this.jumpSwitchBlockTypes.violet) {
             this.currentJumpSwitchBlockType = this.jumpSwitchBlockTypes.pink
         }
         else {
@@ -145,7 +164,7 @@ class TileMapHandler {
                 }
 
                 if (tileType !== 0) {
-                    Display.drawImage(this.spriteCanvas, 0, this.TILE_TYPES[tileType] * this.tileSize,
+                    Display.drawImage(this.spriteCanvas, 0, this.TILE_TYPES[tileType],
                         this.tileSize, this.tileSize, tilePosX * this.tileSize, tilePosY * this.tileSize, this.tileSize, this.tileSize, Display.tileCtx);
                 }
             }
@@ -183,41 +202,53 @@ class TileMapHandler {
             }
         }
         this.layers = this.splitLevelObjectsInLayers();
-        this.displayObjects(this.layers[0]);
-        this.displayObjectsOrDeko(this.deko);
+        // water
+        (isPlayMode || LayerHandler.waterLayer) && this.displayObjects(this.layers[0]);
+        (isPlayMode || LayerHandler.decoLayer) && this.displayObjectsOrDeko(this.deko);
         SFXHandler.updateSfxAnimations("backgroundSFX");
         isPlayMode && this.effects.length && EffectsRenderer.displayEffects();
-        //background objects, like water
-        this.displayObjectsOrDeko(this.paths);
-        //normal objects
-        this.displayObjects(this.layers[1]);
-        this.displayObjects(this.layers[2]);
-        //moving platforms
-        this.displayObjects(this.layers[3]);
-        this.displayStaticTiles();
-        //projectiles
+        // paths
+        if (isPlayMode || LayerHandler.objectLayer) {
+            this.displayObjectsOrDeko(this.paths);
+            // normal objects
+            this.displayObjects(this.layers[1]);
+            this.displayObjects(this.layers[2]);
+            //moving platforms
+            this.displayObjects(this.layers[3]);
+        }
+        // tiles
+        if (isPlayMode || LayerHandler.tileLayer) {
+            this.displayStaticTiles();
+        }
+        // projectiles
         this.displayObjects(this.layers[4]);
     }
 
     splitLevelObjectsInLayers() {
         const layers = [
-            [], [], [], [], [], []
+            [], [], [], [], [], [], [], [],
         ];
         this.levelObjects.forEach(levelObject => {
-            if(SpritePixelArrays.backgroundSprites.includes(levelObject.type)) {
+            if (SpritePixelArrays.backgroundSprites.includes(levelObject.type)) {
                 layers[0].push(levelObject);
             }
-            else if(SpritePixelArrays.projectileSprites.includes(levelObject.type)) {
+            else if (SpritePixelArrays.projectileSprites.includes(levelObject.type)) {
                 layers[4].push(levelObject);
             }
-            else if(SpritePixelArrays.movingPlatformSprites.includes(levelObject.type)) {
+            else if (SpritePixelArrays.movingPlatformSprites.includes(levelObject.type)) {
                 layers[3].push(levelObject);
             }
-            else if(SpritePixelArrays.foregroundSprites.includes(levelObject.type)) {
+            else if (SpritePixelArrays.foregroundSprites.includes(levelObject.type)) {
                 layers[5].push(levelObject);
             }
-            else if(levelObject.type === ObjectTypes.TRAMPOLINE) {
+            else if (levelObject.type === ObjectTypes.TRAMPOLINE) {
                 layers[2].push(levelObject);
+            }
+            else if (levelObject.type === ObjectTypes.EVENT_TRIGGER) {
+                layers[6].push(levelObject)
+            }
+            else if (levelObject.type === ObjectTypes.IMAGE_IN_GAME) {
+                layers[7].push(levelObject)
             }
             else {
                 layers[1].push(levelObject);
@@ -280,8 +311,8 @@ class TileMapHandler {
 
     getValuePositionsForTile(tileX, tileY) {
         return {
-            x: tileX * this.tileSize + this.tileSize / 2,
-            y: tileY * this.tileSize + this.tileSize / 2,
+            x: tileX * this.tileSize + this.halfTileSize,
+            y: tileY * this.tileSize + this.halfTileSize,
         }
     }
 

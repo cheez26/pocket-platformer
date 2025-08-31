@@ -16,7 +16,7 @@ class TabNavigation {
     this.maxSpritesPerTab = 18;
     this.changeTab(null, SpritePixelArrays.SPRITE_TYPES.tile);
     this.handleSelectedSprite(0, 0);
-    this.colorModalSections = ["colorModalColorsSection", "colorModalTransitionSection", "colorModalEffectsSection"];
+    this.colorModalSections = ["colorModalColorsSection", "colorModalTransitionSection", "colorModalEffectsSection", "colorModalBackgroundSelection"];
   }
 
   static redrawAfterAddedOrDeletedSprite() {
@@ -63,18 +63,21 @@ class TabNavigation {
   }
 
   static drawDeleteIconsForCustomSprites() {
-    if (this.currentSelectedTab === SpritePixelArrays.customType) {
-      this.removeOldDeleteIcons();
-      const { startIndex, endIndex } = this.getStartAndEndIndexPerPage();
+    const onBeta = false;
+    if (onBeta) {
+      if (this.currentSelectedTab === SpritePixelArrays.customType) {
+        this.removeOldDeleteIcons();
+        const { startIndex, endIndex } = this.getStartAndEndIndexPerPage();
 
-      for (var index = startIndex; index < endIndex; index++) {
-        const { x, y } = TabNavigation.getPositionForSingleSprite(index);
-        const deleteImgWrapper = CustomSpritesElementsRenderer.createRemoveCustomSpriteIcon(x, y, index)
-        deleteImgWrapper.onclick = (event) => {
-          const id = parseInt(event.target.id.replace("removeCustomSprite", ""));
-          CustomSpriteHandler.showDeleteModal(id);
-        };
-        this.canvasWrapper.appendChild(deleteImgWrapper);
+        for (var index = startIndex; index < endIndex; index++) {
+          const { x, y } = TabNavigation.getPositionForSingleSprite(index);
+          const deleteImgWrapper = CustomSpritesElementsRenderer.createRemoveCustomSpriteIcon(x, y, index)
+          deleteImgWrapper.onclick = (event) => {
+            const id = parseInt(event.target.id.replace("removeCustomSprite", ""));
+            CustomSpriteHandler.showDeleteModal(id);
+          };
+          this.canvasWrapper.appendChild(deleteImgWrapper);
+        }
       }
     }
   }
@@ -88,7 +91,7 @@ class TabNavigation {
       && !(startIndex === endIndex)) {
       this.createNewSpriteButton.style.display = "none";
     }
-    else if(this.currentSelectedTab === 'custom'){
+    else if (this.currentSelectedTab === 'custom') {
       const { x, y } = this.getPositionForSingleSprite(customSpritesAmount);
       this.createNewSpriteButton.style.display = "block";
       this.createNewSpriteButton.style.left = `${x}px`;
@@ -113,12 +116,10 @@ class TabNavigation {
       const { tileSize } = WorldDataHandler;
       const { x, y } = this.getPositionForSingleSprite(index);
       this.selectableSpritesCtx.fillStyle = "#" + WorldColorChanger.getCurrentColor(tileMapHandler.currentLevel);
-      this.selectableSpritesCtx.fillRect(x, y, tileSize + this.padding * 2, tileSize + this.padding * 2);
+      const selectableSpriteSize = tileSize + this.padding * 2
+      this.selectableSpritesCtx.fillRect(x, y, selectableSpriteSize, selectableSpriteSize);
 
-      const spriteIndex = SpritePixelArrays.getIndexOfSprite(sprite.descriptiveName, 0, "descriptiveName");
-      const canvasYSpritePos = spriteIndex * tileSize;
-
-      this.drawSelectableSprite(this.spriteCanvas, 0, canvasYSpritePos,
+      this.drawSelectableSprite(this.spriteCanvas, 0, sprite.canvasYPos,
         tileSize, tileSize, x + this.padding, y + this.padding, tileSize, tileSize);
     }
   }
@@ -171,22 +172,27 @@ class TabNavigation {
     const indexRelativeToPage = index + TabPagination.getPageOffset();
     const selectedSprite = this.selectableSprites[indexRelativeToPage];
     if (selectedSprite) {
-      let extraAttributes = {};
-      if (selectedSprite.custom) {
-        extraAttributes.customName = selectedSprite.descriptiveName;
-      }
-      if (selectedSprite.type === SpritePixelArrays.SPRITE_TYPES.deko) {
-        const allDekoSprites = SpritePixelArrays.getSpritesByType(SpritePixelArrays.SPRITE_TYPES.deko);
-        indexInSpriteArray = allDekoSprites.findIndex((deko) => deko.descriptiveName === selectedSprite.descriptiveName);
-      }
-      const canvasYSpritePos = SpritePixelArrays.getIndexOfSprite(selectedSprite.descriptiveName, 0, "descriptiveName") * WorldDataHandler.tileSize;
-
-      BuildMode.setCurrentSelectedObject({ name: selectedSprite.name, index: indexInSpriteArray, type: selectedSprite.type, extraAttributes,
-        canvasYSpritePos, sprite: selectedSprite, 
-        size: SpritePixelArrays.movingPlatformSprites.includes(selectedSprite.name) ? 3 : 1 });
-      DrawSectionHandler.changeSelectedSprite({ target: { value: selectedSprite.descriptiveName } }, true);
+      this.setSelectedSprite(selectedSprite, indexInSpriteArray)
       this.markSelectedSprite(index, yPos)
     }
+  }
+
+  static setSelectedSprite(selectedSprite, indexInSpriteArray) {
+    var index = indexInSpriteArray;
+    let extraAttributes = {};
+    if (selectedSprite.custom) {
+      extraAttributes.customName = selectedSprite.descriptiveName;
+    }
+    if (selectedSprite.type === SpritePixelArrays.SPRITE_TYPES.deko) {
+      const allDekoSprites = SpritePixelArrays.getSpritesByType(SpritePixelArrays.SPRITE_TYPES.deko);
+      index = allDekoSprites.findIndex((deko) => deko.descriptiveName === selectedSprite.descriptiveName);
+    }
+    BuildMode.setCurrentSelectedObject({
+      name: selectedSprite.name, index, type: selectedSprite.type, extraAttributes,
+      canvasYSpritePos: selectedSprite.canvasYPos, sprite: selectedSprite,
+      size: SpritePixelArrays.movingPlatformSprites.includes(selectedSprite.name) ? 3 : 1
+    });
+    DrawSectionHandler.changeSelectedSprite({ target: { value: selectedSprite.descriptiveName } }, true);
   }
 
   static markSelectedSprite(index, yPos) {

@@ -3,7 +3,7 @@
 class TooltipHandler {
 
     static staticConstructor() {
-        const idsForTooltips = ["otherSpriteTooltip", "canvasObjectToolTip", "transformTooltip", "levelHelpersTooltip", "dialogueAvatarTooltip"];
+        const idsForTooltips = ["otherSpriteTooltip", "canvasObjectToolTip", "transformTooltip", "layersTooltip", "levelHelpersTooltip", "dialogueAvatarTooltip"];
         idsForTooltips.forEach(id => {
             this.createEmptyTooltip(id);
         });
@@ -64,7 +64,7 @@ class TooltipHandler {
     }
 
     static watchForClickOutside(evt, id) {
-        if (!this.getSelectionText()) {
+        if (!this.getSelectionText() && !ModalHandler.open) {
             const flyoutElement = this["toolTipEl" + id];
             let targetElement = evt.target; // clicked element
             do {
@@ -88,6 +88,7 @@ class TooltipHandler {
         this["contentEl" + id].innerHTML = "";
         this["toolTipEl" + id].style.visibility = 'hidden';
         document.removeEventListener("click", this.callBackFunc);
+        BuildMode.showingToolTip = false;
     }
 
     static repositionAndShowTooltip(id, top, left, tooltipHeading = "", tooltipContent = "") {

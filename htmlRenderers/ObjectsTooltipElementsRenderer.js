@@ -96,7 +96,7 @@ class ObjectsTooltipElementsRenderer {
             };
             canvas.style.background = "#" + WorldDataHandler.backgroundColor;
             const ctx = canvas.getContext('2d');
-            Display.drawPixelArray(animationFrame.sprite, 0, 0, tileMapHandler.pixelArrayUnitSize, tileMapHandler.pixelArrayUnitAmount, ctx);
+            Display.drawPixelArray(animationFrame.sprite, 0, 0, tileMapHandler.pixelArrayUnitSize, animationFrame.sprite[0].length, animationFrame.sprite.length, ctx);
             decoSpritesEl.appendChild(canvas);
         });
         spriteContent.appendChild(decoSpritesEl);
@@ -228,6 +228,14 @@ class ObjectsTooltipElementsRenderer {
         return checkboxWrapper;
     }
 
+    static createTransitionOption(optionValue, optionName, parentElement, currentObject) {
+        const optionEl = document.createElement("option");
+        optionEl.value = optionValue;
+        optionEl.innerHTML = optionName;
+        optionEl.selected = currentObject.transitionType === optionValue;
+        parentElement.appendChild(optionEl);
+    }
+
     static finishFlagToolTip(currentObject) {
         const finishFlagWrapper = document.createElement("div");
         finishFlagWrapper.className = "marginTop8";
@@ -248,7 +256,6 @@ class ObjectsTooltipElementsRenderer {
         labelForFirstButton.className = "radioButtonLabel";
         labelForFirstButton.innerHTML = "Next Level";
         firstButtonWrapper.append(firstRadioButton, labelForFirstButton);
-
         const secondButtonWrapper = document.createElement("div");
         secondButtonWrapper.className = "marginTop8";
 
@@ -295,6 +302,9 @@ class ObjectsTooltipElementsRenderer {
                     break;
                 }
             }
+            if (WorldDataHandler.levels.length - 1 === currentObject.customExit.levelIndex) {
+                options[options.length - 1].selected = true;
+            }
         }
         else {
             firstRadioButton.checked = true;
@@ -313,8 +323,104 @@ class ObjectsTooltipElementsRenderer {
         const checkboxWrapper = this.createCheckbox(changeableAttribute,
             "Collectibles needed for opening",
             currentObject);
-
         finishFlagWrapper.append(firstButtonWrapper, secondButtonWrapper, checkboxWrapper);
+        const transitionFallbackFn = (value) => {
+            const customValue = value === "Custom";
+            document.getElementById("transitionAttributes").style.display = customValue ? "block" : "none";
+            if (customValue) {
+                currentObject.addChangeableAttribute("transitionType", currentObject?.transitionType ? currentObject.transitionType : TransitionAnimationHandler.animationType)
+                currentObject.addChangeableAttribute("transitionLength", currentObject?.transitionLength ? currentObject.transitionLength : TransitionAnimationHandler.animationFrames);
+            }
+        };
+        const transitionToggleAttributes = {
+            name: "transition", defaultValue: currentObject?.transition === "Default transition" ? "Default transition" : "Custom",
+            options: [{ "false": "Custom" }, { "true": "Default transition" }],
+            callbackFunction: transitionFallbackFn
+        };
+
+        const defaultTransitionWrapper = document.createElement("div");
+        defaultTransitionWrapper.className = "subSection";
+        const defaultTransitionLabel = this.createToggleSwitch(transitionToggleAttributes, currentObject);
+        defaultTransitionWrapper.appendChild(defaultTransitionLabel);
+        finishFlagWrapper.appendChild(defaultTransitionWrapper);
+        const transitionAttributes = document.createElement("div");
+        transitionAttributes.className = "marginTop8";
+        transitionAttributes.style.display = currentObject?.transition === "Default transition" ? "none" : "block";
+        transitionAttributes.style.whiteSpace = "nowrap"
+        transitionAttributes.id = "transitionAttributes";
+        const typeLabel = document.createElement("span");
+        typeLabel.className = "colorModalAttribute";
+        typeLabel.innerHTML = "Type:";
+        transitionAttributes.appendChild(typeLabel);
+        const selectType = document.createElement("select");
+        selectType.name = "transitionType";
+        selectType.id = "transitionType";
+        selectType.onchange = (event) => {
+            currentObject.addChangeableAttribute("transitionType", event.target.value)
+        };
+
+        transitionAttributes.appendChild(selectType);
+        this.createTransitionOption("none", "None", selectType, currentObject);
+        this.createTransitionOption("tiles", "Fading tiles", selectType, currentObject);
+        this.createTransitionOption("cutOutCircle", "Cut out circle", selectType, currentObject);
+        this.createTransitionOption("wholeScreen", "Screen fade", selectType, currentObject);
+        const transitionDurationWrapper = document.createElement("div");
+        transitionDurationWrapper.className = "marginTop12 changeableAttributesWrapper";
+        const transitionDurationLabel = document.createElement("span");
+        transitionDurationLabel.className = "colorModalAttribute";
+        transitionDurationLabel.innerHTML = "Length:";
+        transitionDurationWrapper.appendChild(transitionDurationLabel);
+        const transitionDurationInput = document.createElement("input");
+        transitionDurationInput.style.marginRight = "12px";
+        Helpers.addAttributesToHTMLElement(transitionDurationInput, {
+            "type": "range", min: 2, max: 96, value: currentObject.transitionLength || 48,
+            class: "slider", step: 2, id: "customTransitionDuration"
+        });
+        transitionDurationInput.onchange = (event) => {
+            const value = event.target.value;
+            document.getElementById("customTransitionDurationValue").innerHTML = value;
+            currentObject.addChangeableAttribute("transitionLength", value);
+        }
+        transitionDurationWrapper.appendChild(transitionDurationInput);
+        const transitionDurationValue = document.createElement("span");
+        transitionDurationValue.id = "customTransitionDurationValue";
+        transitionDurationValue.innerHTML = currentObject.transitionLength || 48;
+        transitionDurationWrapper.appendChild(transitionDurationValue);
+
+        transitionAttributes.appendChild(transitionDurationWrapper);
+        finishFlagWrapper.appendChild(transitionAttributes);
+
+        const soundSelectorWrapper = document.createElement("div");
+        soundSelectorWrapper.className = "subSection";
+
+        const soundImg = document.createElement("img");
+        Helpers.addAttributesToHTMLElement(soundImg, {
+            "src": "images/icons/sound.svg", width: 16, height: 16,
+            class: "iconInButtonWithText"
+        });
+        soundSelectorWrapper.appendChild(soundImg);
+
+        const soundSelect = document.createElement("select");
+        soundSelect.name = "soundSelect";
+        soundSelect.id = "soundSelect";
+        soundSelect.style.width = "212px";
+        soundSelect.style.marginLeft = "8px";
+        soundSelect.onchange = (event) => {
+            currentObject.addChangeableAttribute("sound", event.target.value)
+        };
+        SoundHandler.sounds.forEach(sound => {
+            if (sound.type === "sound") {
+                const selectedValue = currentObject.sound === sound.key || sound.key === "win" && !currentObject.sound;
+                const optionEl = document.createElement("option");
+                optionEl.value = sound.key;
+                optionEl.innerHTML = sound.descriptiveName;
+                optionEl.selected = selectedValue;
+                soundSelect.appendChild(optionEl);
+            }
+        })
+        soundSelectorWrapper.appendChild(soundSelect);
+
+        finishFlagWrapper.appendChild(soundSelectorWrapper);
 
         return finishFlagWrapper;
     }
@@ -397,6 +503,7 @@ class ObjectsTooltipElementsRenderer {
             const currentValue = currentOption[checkboxValue];
             currentObject && currentObject.addChangeableAttribute(attribute.name, currentValue);
             document.getElementById("switchValue").innerHTML = currentValue;
+            attribute.callbackFunction && attribute.callbackFunction(currentValue);
         };
 
         const spanEl = document.createElement("span");
@@ -436,7 +543,7 @@ class ObjectsTooltipElementsRenderer {
     }
 
     static renderPlayButton(firstTime) {
-        document.getElementById("changeGameMode").innerHTML = `<div> 
+        document.getElementById("changeGameMode").innerHTML = `<div class="playbutton_top"> 
             <img src="images/icons/right.svg" class="iconInButtonWithText" alt="play" width="14" height="14">
             <span id="playPauseText"style="display: inline-block;">Play</span>
         </div>`;
@@ -444,7 +551,7 @@ class ObjectsTooltipElementsRenderer {
     }
 
     static renderPauseButton(firstTime) {
-        document.getElementById("changeGameMode").innerHTML = `<div> 
+        document.getElementById("changeGameMode").innerHTML = `<div class="playbutton_top"> 
             <img src="images/icons/pause.svg" class="iconInButtonWithText" alt="pause" width="14" height="14">
             <span id="playPauseText" style="display: inline-block;">Stop</span>
         </div>`;
@@ -489,15 +596,20 @@ class ObjectsTooltipElementsRenderer {
     }
 
     static createDrawHelpersToolsTop() {
+        const { currentSpriteHeight, currentSpriteWidth } = DrawSectionHandler;
+        const sameHeightAndWidth = currentSpriteHeight === currentSpriteWidth;
+        const disabledOption = sameHeightAndWidth ? "" : "disabled";
+        const rotateButtonClasses = sameHeightAndWidth ? "iconInButtonWithText" : "iconInButtonWithText greyFilter";
+
         const template = Object.assign(
             document.createElement(`div`),
             {
                 innerHTML: `
                     <div>
                         <div class="flexRows">
-                            <button id="rotateLeftHelper" title="rotate left" class="levelNavigationButton buttonWithIconAndText"
+                            <button id="rotateLeftHelper" ${disabledOption} title="rotate left" class="levelNavigationButton buttonWithIconAndText"
                                 onClick="DrawHelpers.rotateRight()">
-                                <img src="images/icons/rotateLeft.svg" class="iconInButtonWithText" alt="rotateLeftHelper"
+                                <img src="images/icons/rotateLeft.svg" class="${rotateButtonClasses}" alt="rotateLeftHelper"
                                 width="16" height="16">
                             </button>
                             <button id="longArrowUpHelper" title="move up" class="levelNavigationButton buttonWithIconAndText"
@@ -505,9 +617,9 @@ class ObjectsTooltipElementsRenderer {
                                 <img src="images/icons/longArrowUp.svg" class="iconInButtonWithText" alt="longArrowUpHelper"
                                 width="16" height="16">
                             </button>
-                            <button id="rotateRightHelper" title="rotate right" class="levelNavigationButton buttonWithIconAndText"
+                            <button id="rotateRightHelper" ${disabledOption} title="rotate right" class="levelNavigationButton buttonWithIconAndText"
                                 onClick="DrawHelpers.rotateLeft()">
-                                <img src="images/icons/rotateRight.svg" class="iconInButtonWithText" alt="rotateRightHelper"
+                                <img src="images/icons/rotateRight.svg" class="${rotateButtonClasses}" alt="rotateRightHelper"
                                 width="16" height="16">
                             </button>
                         </div>
@@ -550,6 +662,78 @@ class ObjectsTooltipElementsRenderer {
             });
         template.style.whiteSpace = "initial";
         return template
+    }
+
+    static getRightEyeIcon(layerVisibility) {
+        return layerVisibility ? "images/icons/eye.svg" : "images/icons/closedEye.svg";
+    }
+
+    static createLayersTooltip() {
+        const template = Object.assign(
+            document.createElement(`div`),
+            {
+                innerHTML:
+                    `
+                                <table class="fullWidth">
+                                    <tr>
+                                        <td style="width: 24px">
+                                            <button id="waterLayer" class="layerButton levelNavigationButton"
+                                                onClick="LayerHandler.layerVisibilityButtonClicked(event)">
+                                                <img src=${this.getRightEyeIcon(LayerHandler.waterLayer)} width="16" height="16">
+                                            </button>
+                                        </td>
+                                        <td>Water</td>
+                                    </tr>
+                                    <tr>
+                                        <td>
+                                            <button id="decoLayer" class="layerButton levelNavigationButton"
+                                                onClick="LayerHandler.layerVisibilityButtonClicked(event)">
+                                                <img src=${this.getRightEyeIcon(LayerHandler.decoLayer)} width="16" height="16">
+                                            </button>
+                                        </td>
+                                        <td>Deco</td>
+                                    </tr>
+                                    <tr>
+                                        <td>
+                                            <button id="objectLayer" class="layerButton levelNavigationButton"
+                                                onClick="LayerHandler.layerVisibilityButtonClicked(event)">
+                                                <img src=${this.getRightEyeIcon(LayerHandler.objectLayer)} width="16" height="16">
+                                            </button>
+                                        </td>
+                                        <td>Objects</td>
+                                    </tr>
+                                    <tr>
+                                        <td>
+                                            <button id="tileLayer" class="layerButton levelNavigationButton"
+                                                onClick="LayerHandler.layerVisibilityButtonClicked(event)">
+                                                <img src=${this.getRightEyeIcon(LayerHandler.tileLayer)} width="16" height="16">
+                                            </button>
+                                        </td>
+                                        <td>Tiles</td>
+                                    </tr>
+                                    <tr>
+                                        <td>
+                                            <button id="foregroundLayer" class="layerButton levelNavigationButton"
+                                                onClick="LayerHandler.layerVisibilityButtonClicked(event)">
+                                                <img src=${this.getRightEyeIcon(LayerHandler.foregroundLayer)} width="16" height="16">
+                                            </button>
+                                        </td>
+                                        <td>Foreground</td>
+                                    </tr>
+                                    <tr>
+                                        <td>
+                                            <button id="triggerLayer" class="layerButton levelNavigationButton"
+                                                onClick="LayerHandler.layerVisibilityButtonClicked(event)">
+                                                <img src=${this.getRightEyeIcon(LayerHandler.triggerLayer)} width="16" height="16">
+                                            </button>
+                                        </td>
+                                        <td>Event triggers</td>
+                                    </tr>
+                                </table>
+                            `
+            });
+        template.style.whiteSpace = "normal";
+        return template;
     }
 
     static createDialogueContent(attribute, currentObject, dialogueWrapper) {
@@ -625,7 +809,7 @@ class ObjectsTooltipElementsRenderer {
                 //null check  if custom sprite was deleted
                 if (sSprite[0]) {
                     const animationFrame = sSprite[0].animation[0];
-                    Display.drawPixelArray(animationFrame.sprite, 0, 0, tileMapHandler.pixelArrayUnitSize, tileMapHandler.pixelArrayUnitAmount, ctx);
+                    Display.drawPixelArray(animationFrame.sprite, 0, 0, tileMapHandler.pixelArrayUnitSize, animationFrame.sprite[0].length, animationFrame.sprite.length, ctx);
                 }
                 buttonsWrapper.appendChild(sSCanvas);
             }

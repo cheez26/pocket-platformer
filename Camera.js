@@ -24,6 +24,9 @@ class Camera {
             currentFrame: 0,
             intensity: 0,
         };
+        this.objectToZoomTo = null;
+        this.currentScreenshakeOffsetX = 0;
+        this.currentScreenshakeOffsetY = 0;
     }
 
     static begin() {
@@ -74,9 +77,6 @@ class Camera {
         let newFollowY;
         let positionChanged = false;
 
-        newFollowX = this.outOfBoundsXCorrection(x);
-        newFollowY = this.outOfBoundsYCorrection(y);
-
         /*
             Those fixes are needed for zoom factor.
             If Zoom factor doesn't fit the game screen perfectly (F.e 18x10 size), the difference can be really small, like 5px
@@ -85,10 +85,18 @@ class Camera {
         let changingXNecessary = false;
         let changingYNecessary = false;
 
-        if(tileMapHandler.levelHeightInPx - this.viewport.height > tileMapHandler.tileSize - 1) {
+        if (this.objectToZoomTo) {
+            this.zoomToObject(this.objectToZoomTo.zoomSpeed, this.objectToZoomTo.desiredZoomFactor);
+            positionChanged = true;
+        }
+
+        newFollowX = this.outOfBoundsXCorrection(x);
+        newFollowY = this.outOfBoundsYCorrection(y);
+
+        if (tileMapHandler.levelHeightInPx - this.viewport.height > tileMapHandler.tileSize - 1) {
             changingYNecessary = true
         }
-        if(tileMapHandler.levelWidthInPx - this.viewport.width > tileMapHandler.tileSize - 1) {
+        if (tileMapHandler.levelWidthInPx - this.viewport.width > tileMapHandler.tileSize - 1) {
             changingXNecessary = true
         }
 
@@ -103,6 +111,10 @@ class Camera {
         if (this.screenShake.currentFrame > 0) {
             this.doScreenShake();
             positionChanged = true;
+            if (this.screenShake.currentFrame === 0) {
+                this.follow.x = this.outOfBoundsXCorrection(x);
+                this.follow.y = this.outOfBoundsYCorrection(y);
+            }
         }
         if (positionChanged) {
             this.updateViewport();
@@ -111,9 +123,15 @@ class Camera {
 
     static doScreenShake() {
         this.screenShake.currentFrame--;
-        this.follow.x += MathHelpers.getSometimesNegativeRandomNumber(1, this.screenShake.intensity, false);
-        this.follow.y += MathHelpers.getSometimesNegativeRandomNumber(1, this.screenShake.intensity, false);
-
+        let direction = -1;
+        const evenFrame = this.screenShake.currentFrame % 2 === 0;
+        if(evenFrame) {
+            this.currentScreenshakeOffsetX = MathHelpers.getRandomNumberBetweenTwoNumbers(this.screenShake.intensity / 2, this.screenShake.intensity, false);
+            this.currentScreenshakeOffsetY = MathHelpers.getRandomNumberBetweenTwoNumbers(this.screenShake.intensity / 2, this.screenShake.intensity, false);
+            direction = 1;
+        }
+        this.follow.x += this.currentScreenshakeOffsetX * direction;
+        this.follow.y += this.currentScreenshakeOffsetY * direction;
     }
 
     static outOfBoundsXCorrection(x) {
@@ -141,7 +159,6 @@ class Camera {
     }
 
     static moveTo(x, y) {
-        
         this.follow.x = this.outOfBoundsXCorrection(x);
         this.follow.y = this.outOfBoundsYCorrection(y);
         this.updateViewport();
@@ -158,24 +175,18 @@ class Camera {
         };
     }
 
-    static zoomToObject(scaleSpeed = 0.0025, obj) {
+    static zoomToObject(scaleSpeed = 0.0025, desiredZoomFactor) {
         Display.ctx.imageSmoothingEnabled = true;
-        if (Camera.viewport.scale < 2) {
-            const cameraXCenter = Camera.viewport.left + Camera.viewport.halfWidth;
-            const cameraYCenter = Camera.viewport.top + Camera.viewport.halfHeight;
-            const cameraMovementSpeed = Math.round(Camera.viewport.width / 100 * (scaleSpeed * 100));
-            if (MathHelpers.getDistanceBetween2Objects({ x: cameraXCenter, y: cameraYCenter }, obj) < cameraMovementSpeed) {
-                Camera.viewport.left = obj.x + (obj.width / 2) - Camera.viewport.halfWidth;
-                Camera.viewport.top = obj.y + (obj.height / 2) - Camera.viewport.halfHeight;
-            }
-            else {
-                Camera.updateViewportRelatedToScale(Camera.viewport.scale + scaleSpeed);
-                const newAngle = MathHelpers.getAngle(cameraXCenter, cameraYCenter, obj.x, obj.y);
-                const angle = MathHelpers.normalizeAngle(newAngle);
-                const radians = MathHelpers.getRadians(angle);
-                Camera.viewport.left -= Math.cos(radians) * cameraMovementSpeed;
-                Camera.viewport.top -= Math.sin(radians) * cameraMovementSpeed;
-            }
+        if (Camera.viewport.scale < desiredZoomFactor) {
+            const scale = Camera.viewport.scale + scaleSpeed;
+            this.viewport.scale = scale;
+            this.viewport.height = this.originalHeight / this.viewport.scale;
+            this.viewport.width = this.originalWidth / this.viewport.scale;
+            this.viewport.halfHeight = this.originalHeight / 2 / this.viewport.scale;
+            this.viewport.halfWidth = this.originalWidth / 2 / this.viewport.scale;
+        }
+        else {
+            this.objectToZoomTo = null;
         }
     }
 }

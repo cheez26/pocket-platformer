@@ -39,6 +39,10 @@ class ObjectTypes {
     return 'connectedDisappearingBlock';
   }
 
+  static get EVENT_TRIGGER() {
+    return 'eventTrigger'
+  }
+
   static get TREADMILL() {
     return 'treadmill';
   }
@@ -167,7 +171,7 @@ class ObjectTypes {
     return 'collectible';
   }
 
-  static  get POWER_UP() {
+  static get POWER_UP() {
     return 'powerUp';
   }
 
@@ -177,6 +181,10 @@ class ObjectTypes {
 
   static get TRIGGERED_PLATFORM() {
     return 'triggeredPlatform';
+  }
+
+  static get IMAGE_IN_GAME() {
+    return 'imageInGame';
   }
 
   static get SPECIAL_BLOCK_VALUES() {
@@ -225,6 +233,7 @@ class ObjectTypes {
       [this.POWER_UP]: PowerUp,
       [this.MOVING_PLATFORM]: MovingPlatform,
       [this.TRIGGERED_PLATFORM]: TriggeredPlatform,
+      [this.EVENT_TRIGGER]: EventTrigger,
       [this.WATER]: Water,
       [this.TOGGLE_MINE]: ToggleMine,
       [this.ROCKET_LAUNCHER]: RocketLauncher,

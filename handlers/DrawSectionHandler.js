@@ -15,6 +15,7 @@ class DrawSectionHandler {
             this[elementToQuery] = document.getElementById(elementToQuery);
         });
         this.initializeColorPicker();
+        this.redrawSpriteCanvas = redrawSpriteCanvas;
         this.redrawSpriteCanvasCtx = redrawSpriteCanvas.getContext('2d');
         this.redrawSpriteCanvasCtx.translate(0, 0);
         redrawSpriteCanvas.addEventListener("mouseenter", (e) => { Controller.mouseEnterDrawCanvas(e) });
@@ -30,6 +31,7 @@ class DrawSectionHandler {
         this.getBoundingRectPosition();
         this.getBoundingRectPosition(5000);
         this.canvasHeight = redrawSpriteCanvas.height;
+        this.canvasWidth = redrawSpriteCanvas.width
         this.pixelSize = Math.floor(redrawSpriteCanvas.width / tileMapHandler.pixelArrayUnitAmount);
         redrawSpriteCanvas.style.padding = this.padding;
         this.mousePressed = false;
@@ -49,8 +51,8 @@ class DrawSectionHandler {
         });
         this.hueb.on('change', (color) => {
             this.pencilButton.style.color === "white" ?
-            document.getElementById("pencilIcon").classList.add("whiteFilter") :
-            document.getElementById("pencilIcon").classList.remove("whiteFilter");
+                document.getElementById("pencilIcon").classList.add("whiteFilter") :
+                document.getElementById("pencilIcon").classList.remove("whiteFilter");
             this.hueb.close();
             this.currentColor = color.replace("#", "");
         })
@@ -88,28 +90,31 @@ class DrawSectionHandler {
         sprites.className = "marginTop8";
         spriteContent.appendChild(description);
         SpritePixelArrays.allSprites.forEach(sprite => {
-            sprite.animation.forEach(animationFrame => {
-                var canvas = document.createElement('canvas');
-                Helpers.addAttributesToHTMLElement(canvas, {
-                    "width": this.tileMapHandler.tileSize,
-                    "height": this.tileMapHandler.tileSize, "id": 1, "class": "canvasInSpriteSelector"
-                });
-                canvas.onclick = (e) => {
-                    const clonedSprite = JSON.parse(JSON.stringify(animationFrame.sprite));
-                    this.currentSprite.sprite.animation[this.currentSprite.animationFrame].sprite = clonedSprite;
-                    this.drawCurrentSprite();
-                    this.redrawOutsideCanvases();
-                    if (this.currentSprite?.sprite?.type) {
-                        TabNavigation.changeTab(null, TabNavigation.currentSelectedTab === SpritePixelArrays.customType ?
-                            SpritePixelArrays.customType : this.currentSprite.sprite.type);
-                    }
-                    TooltipHandler.closeTooltip(e, "otherSpriteTooltip");
-                };
-                canvas.style.background = "#" + WorldDataHandler.backgroundColor;
-                sprites.appendChild(canvas);
-                const ctx = canvas.getContext('2d');
-                Display.drawPixelArray(animationFrame.sprite, 0, 0, this.tileMapHandler.pixelArrayUnitSize, this.tileMapHandler.pixelArrayUnitAmount, ctx);
-            })
+            if (this.currentSprite.sprite.commonType === sprite.commonType && sprite.descriptiveName != "Player wall jump") {
+                sprite.animation.forEach(animationFrame => {
+                    var canvas = document.createElement('canvas');
+                    Helpers.addAttributesToHTMLElement(canvas, {
+                        "width": this.currentSpriteWidth * this.tileMapHandler.pixelArrayUnitSize,
+                        "height": this.currentSpriteHeight * this.tileMapHandler.pixelArrayUnitSize,
+                        "id": 1, "class": "canvasInSpriteSelector"
+                    });
+                    canvas.onclick = (e) => {
+                        const clonedSprite = JSON.parse(JSON.stringify(animationFrame.sprite));
+                        this.currentSprite.sprite.animation[this.currentSprite.animationFrame].sprite = clonedSprite;
+                        this.drawCurrentSprite();
+                        this.redrawOutsideCanvases();
+                        if (this.currentSprite?.sprite?.type) {
+                            TabNavigation.changeTab(null, TabNavigation.currentSelectedTab === SpritePixelArrays.customType ?
+                                SpritePixelArrays.customType : this.currentSprite.sprite.type);
+                        }
+                        TooltipHandler.closeTooltip(e, "otherSpriteTooltip");
+                    };
+                    canvas.style.background = "#" + WorldDataHandler.backgroundColor;
+                    sprites.appendChild(canvas);
+                    const ctx = canvas.getContext('2d');
+                    Display.drawPixelArray(animationFrame.sprite, 0, 0, this.tileMapHandler.pixelArrayUnitSize, animationFrame.sprite[0].length, animationFrame.sprite.length, ctx);
+                })
+            }
         });
         spriteContent.appendChild(sprites);
         TooltipHandler.showTooltip("otherSpriteTooltip", heading, spriteContent);
@@ -133,15 +138,143 @@ class DrawSectionHandler {
         this.currentSelectedTool = tools.eyeDropper;
     }
 
+    static changeAnimationFramesSize() {
+        const animationCanvases = document.getElementsByClassName("animationFrameCanvas");
+        for (var i = 0; i < animationCanvases.length; i++) {
+            animationCanvases[i].height = this.currenteSpritePixelHeight;
+            animationCanvases[i].width = this.currentSpritePixelWidth;
+        }
+    }
+
+    static changeDrawCanvasSize(manuallyChangedSpriteSize = false) {
+        this.redrawSpriteCanvas.height = this.currentSpriteHeight * tileMapHandler.tileSize;
+        this.redrawSpriteCanvas.width = this.currentSpriteWidth * tileMapHandler.tileSize;
+        this.canvasHeight = this.redrawSpriteCanvas.height;
+        this.canvasWidth = this.redrawSpriteCanvas.width
+        this.changeAnimationFramesSize();
+        this.drawCurrentSprite();
+        this.redrawOutsideCanvases();
+        if (manuallyChangedSpriteSize) {
+            TabNavigation.drawSpritesByType();
+            if (TabNavigation.currentSelectedTab === SpritePixelArrays.customType) {
+                TabNavigation.redrawAfterAddedOrDeletedSprite();
+            }
+            this.tileMapHandler.updateYCanvasAttributeForSetObjects();
+        }
+    }
+
+    static updateAfterSpriteSizeChange(objectToChange) {
+        this.changeCurrentSelectedSpriteDimensions();
+        SpritePixelArrays.indexAllSprites();
+        objectToChange.setAnimationProperties();
+        objectToChange.updateExtraColissionPoints();
+        this.changeDrawCanvasSize(true);
+        this.changeDrawCanvasSize(true);
+    }
+
+    static getSpriteSizeValueChanges(oldValue, newValue) {
+        const newSpriteBigger = newValue > oldValue;
+        const difference = Math.abs(newValue - oldValue);
+        return { newSpriteBigger, difference };
+    }
+
+    static changeSpriteWidth(event) {
+        const currentSpriteObject = SpritePixelArrays.getSpritesByDescrpitiveName(this.currentSprite.sprite.descriptiveName)?.[0];
+        let objectToChange = currentSpriteObject.commonType === "player" ? player : this.getObjectByCommonType(currentSpriteObject.type);
+        const newValue = event.target.value;
+        const { newSpriteBigger, difference } = this.getSpriteSizeValueChanges(this.currentSpriteWidth, newValue);
+
+        objectToChange.width = tileMapHandler.pixelArrayUnitSize * newValue;
+        document.getElementById("widthsliderValue").innerHTML = newValue;
+        objectToChange.resetAnimationAttributes();
+
+        SpritePixelArrays.allSprites.filter(sprite => sprite.commonType === currentSpriteObject.commonType).forEach(sprite => {
+            sprite.animation.forEach(animationSprite => {
+                if (newSpriteBigger) {
+                    for (var i = 0; i < difference; i++) {
+                        for (var j = 0; j < this.currentSpriteHeight; j++) {
+                            animationSprite.sprite[j].push("transp")
+                        }
+                    }
+                }
+                else {
+                    for (var i = 0; i < difference; i++) {
+                        for (var j = 0; j < this.currentSpriteHeight; j++) {
+                            animationSprite.sprite[j].pop();
+                        }
+                    }
+                }
+            })
+            spriteSheetCreator.redrawSprite(sprite, SpritePixelArrays.getIndexOfSprite(sprite.descriptiveName, 0, "descriptiveName"))
+        });
+        this.updateAfterSpriteSizeChange(objectToChange);
+    }
+
+    static changeSpriteHeight(event) {
+        const currentSpriteObject = SpritePixelArrays.getSpritesByDescrpitiveName(this.currentSprite.sprite.descriptiveName)?.[0];
+        let objectToChange = currentSpriteObject.commonType === "player" ? player : this.getObjectByCommonType(currentSpriteObject.type);
+        const oldHeight = objectToChange.height;
+        const newValue = event.target.value;
+        const { newSpriteBigger, difference } = this.getSpriteSizeValueChanges(this.currentSpriteHeight, newValue);
+
+        objectToChange.height = tileMapHandler.pixelArrayUnitSize * newValue - objectToChange.heightOffset;
+        objectToChange.y += oldHeight - objectToChange.height;
+        document.getElementById("heightsliderValue").innerHTML = newValue;
+        objectToChange.resetAnimationAttributes();
+
+        SpritePixelArrays.allSprites.filter(sprite => sprite.commonType === currentSpriteObject.commonType).forEach(sprite => {
+            sprite.animation.forEach(animationSprite => {
+                if (newSpriteBigger) {
+                    for (var i = 0; i < difference; i++) {
+                        const widthArray = Array(this.currentSpriteWidth).fill("transp")
+                        animationSprite.sprite.unshift(widthArray)
+                    }
+                }
+                else {
+                    for (var i = 0; i < difference; i++) {
+                        animationSprite.sprite.shift()
+                    }
+                }
+            })
+            spriteSheetCreator.redrawSprite(sprite, SpritePixelArrays.getIndexOfSprite(sprite.descriptiveName, 0, "descriptiveName"))
+        });
+        this.updateAfterSpriteSizeChange(objectToChange);
+    }
+
+    static checkHeightWidthSlidersVisibility(sprite) {
+        const heightChanger = document.getElementById("heightAnimationChanger");
+        const widthChanger = document.getElementById("widthAnimationChanger");
+        if (sprite.name.toString().toLowerCase().includes("player") && sprite.commonType) {
+            heightChanger.style.display = "flex";
+            document.getElementById("spriteHeightSlider").value = this.currentSpriteHeight;
+            document.getElementById("heightsliderValue").innerHTML = this.currentSpriteHeight;
+            widthChanger.style.display = "flex";
+            document.getElementById("spriteWidthSlider").value = this.currentSpriteWidth;
+            document.getElementById("widthsliderValue").innerHTML = this.currentSpriteWidth;
+        }
+        else {
+            heightChanger.style.display = "none";
+            widthChanger.style.display = "none";
+        }
+    }
+
+    static changeCurrentSelectedSpriteDimensions() {
+        this.currentSpriteHeight = this.currentSprite.sprite.animation[0].sprite.length;
+        this.currentSpriteWidth = this.currentSprite.sprite.animation[0].sprite[0].length;
+        this.currenteSpritePixelHeight = this.currentSpriteHeight * this.tileMapHandler.pixelArrayUnitSize;
+        this.currentSpritePixelWidth = this.currentSpriteWidth * this.tileMapHandler.pixelArrayUnitSize;
+    }
+
     static changeSelectedSprite(event, changeSelectOption = false) {
         const spriteName = event.target.value;
         const sprite = SpritePixelArrays.getSpritesByDescrpitiveName(spriteName)[0];
         this.currentSprite.spriteIndexInArray = SpritePixelArrays.getIndexOfSprite(sprite.descriptiveName, 0, "descriptiveName")
         this.currentSprite.sprite = sprite;
         this.currentSprite.animationFrame = 0;
+        this.changeCurrentSelectedSpriteDimensions();
         this.changeAnimationFrame(0);
         this.animationCanvases = [];
-
+        this.checkHeightWidthSlidersVisibility(sprite);
         this.displaySpriteDescription(sprite);
         this.createAnimationWrapper(sprite);
 
@@ -153,6 +286,7 @@ class DrawSectionHandler {
                 this.spriteSelectEl.selectedIndex = indexInSelect
             }
         }
+        this.changeDrawCanvasSize();
     }
 
     static displaySpriteDescription(sprite) {
@@ -168,7 +302,7 @@ class DrawSectionHandler {
     }
 
     static createAnimationWrapper(sprite, htmlElement = this.spriteAnimationEl) {
-        if ((sprite.type === SpritePixelArrays.SPRITE_TYPES.tile || sprite.name === "edge") && 
+        if ((sprite.type === SpritePixelArrays.SPRITE_TYPES.tile || sprite.name === "edge") &&
             !SpritePixelArrays.tilesWithAnimation.includes(sprite.name) &&
             !SpritePixelArrays.backgroundSprites.includes(sprite.name)) {
             this.spriteAnimationWrapper.style.display = "none";
@@ -184,7 +318,7 @@ class DrawSectionHandler {
                     this.createButtonForAdditionalFrame(sprite);
                 }
             }
-            [{ attributeName: "squishAble", description: "Squish animation" },
+            [{ attributeName: "squishAble", description: "Squish animation" }, { attributeName: "showInGame", description: "Show in Game" },
             { attributeName: "rotateable", description: "Rotateable" }].forEach(attribute => {
                 if (sprite[attribute.attributeName] !== undefined) {
                     this.createCheckboxForSquishAnimation(sprite, attribute.attributeName, attribute.description);
@@ -227,7 +361,7 @@ class DrawSectionHandler {
         button.onclick = () => {
             const plusButton = document.getElementById("additionalFrameButton");
             this.spriteAnimationEl.removeChild(plusButton);
-            sprite.animation.push(SpritePixelArrays.EMPTY_ANIMATION_FRAME);
+            sprite.animation.push(JSON.parse(JSON.stringify(SpritePixelArrays.createDynamicEmptySprite(this.currentSpriteWidth, this.currentSpriteHeight))));
             this.newFrameAddedOrDeleted(sprite, 1);
         };
         button.appendChild(plusImg);
@@ -257,11 +391,13 @@ class DrawSectionHandler {
             };
             canvasFrameWrapper.appendChild(deleteImg);
         }
+        canvas.height = this.currenteSpritePixelHeight;
+        canvas.width = this.currentSpritePixelWidth;
         canvasFrameWrapper.appendChild(canvas);
         this.spriteAnimationEl.appendChild(canvasFrameWrapper);
         const ctx = canvas.getContext('2d');
         this.animationCanvases.push(ctx);
-        Display.drawPixelArray(animationFrame, 0, 0, this.tileMapHandler.pixelArrayUnitSize, this.tileMapHandler.pixelArrayUnitAmount,
+        Display.drawPixelArray(animationFrame, 0, 0, this.tileMapHandler.pixelArrayUnitSize, animationFrame[0].length, animationFrame.length,
             ctx);
     }
 
@@ -292,10 +428,11 @@ class DrawSectionHandler {
 
     static drawCurrentSprite() {
         this.redrawSpriteCanvasCtx.clearRect(0, 0, this.canvasWidth, this.canvasHeight);
-        Display.drawPixelArray(this.currentSprite.sprite.animation[this.currentSprite.animationFrame].sprite, 0, 0, this.pixelSize, this.tileMapHandler.pixelArrayUnitAmount,
+        const currentSprite = this.currentSprite.sprite.animation[this.currentSprite.animationFrame];
+        Display.drawPixelArray(currentSprite.sprite, 0, 0, this.pixelSize, currentSprite.sprite[0].length, currentSprite.sprite.length,
             this.redrawSpriteCanvasCtx)
-        const { pixelArrayUnitAmount, tileSize } = this.tileMapHandler;
-        Display.drawGrid(pixelArrayUnitAmount, pixelArrayUnitAmount, tileSize, '383838', 1, this.redrawSpriteCanvasCtx);
+        const { tileSize } = this.tileMapHandler;
+        Display.drawGrid(this.currentSpriteWidth, this.currentSpriteHeight, tileSize, '383838', 1, this.redrawSpriteCanvasCtx);
     }
 
     static findIndexOfOption(text) {
@@ -324,8 +461,7 @@ class DrawSectionHandler {
 
             if (Controller.mousePressed || Controller.rightMousePressed) {
                 const { animationFrame, sprite } = this.currentSprite;
-                const { pixelArrayUnitAmount } = this.tileMapHandler;
-                if (posInArray.x >= 0 && posInArray.y >= 0 && posInArray.x < pixelArrayUnitAmount && posInArray.y < pixelArrayUnitAmount &&
+                if (posInArray.x >= 0 && posInArray.y >= 0 && posInArray.x < this.currentSpriteWidth && posInArray.y < this.currentSpriteHeight &&
                     sprite?.animation[animationFrame]?.sprite?.[posInArray.y]?.[posInArray.x]) {
                     if (this.currentSelectedTool === tools.pencil && this.currentColor || Controller.rightMousePressed) {
                         this.clickedWithPencil(posInArray);
@@ -348,10 +484,13 @@ class DrawSectionHandler {
     static clickedWithPencil(posInArray) {
         const { animationFrame, sprite } = this.currentSprite;
         const color = Controller.mousePressed ? this.currentColor : "transp";
+        const colorChanged = sprite.animation[animationFrame].sprite[posInArray.y][posInArray.x] != color;
         sprite.animation[animationFrame].sprite[posInArray.y][posInArray.x] = color;
-        Helpers.debounce(() => {
-            this.redrawOutsideCanvases();
-        }, 300);
+        if (colorChanged) {
+            Helpers.debounce(() => {
+                this.redrawOutsideCanvases();
+            }, 300);
+        }
     }
 
     static clickedWithEyeDropper(posInArray) {
@@ -365,13 +504,15 @@ class DrawSectionHandler {
     }
 
     static redrawOutsideCanvases(forceRedraw = false) {
-        const { animationFrame } = this.currentSprite;
         //animation underneath sprite redraw
         if (this.animationCanvases.length > 0) {
-            const { pixelArrayUnitSize, pixelArrayUnitAmount, tileSize } = this.tileMapHandler;
-            this.animationCanvases[animationFrame].clearRect(0, 0, tileSize, tileSize);
-            Display.drawPixelArray(this.currentSprite.sprite.animation[animationFrame].sprite, 0, 0, pixelArrayUnitSize, pixelArrayUnitAmount,
-                this.animationCanvases[animationFrame]);
+            for (var i = 0; i < this.animationCanvases.length; i++) {
+                const { pixelArrayUnitSize } = this.tileMapHandler;
+                this.animationCanvases[i].clearRect(0, 0, tileMapHandler.tileSize * 2, tileMapHandler.tileSize * 2);
+                const currentSprite = this.currentSprite.sprite.animation[i];
+                Display.drawPixelArray(currentSprite.sprite, 0, 0, pixelArrayUnitSize, currentSprite.sprite[0].length, currentSprite.sprite.length,
+                    this.animationCanvases[i]);
+            }
         }
         //if current tab contains current redrawable sprite, update it, otherwise it will update on next tab click
         if (TabNavigation.currentSelectedTab === this.currentSprite.sprite.type ||

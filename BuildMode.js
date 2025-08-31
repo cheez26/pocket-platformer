@@ -13,7 +13,8 @@ class BuildMode {
         this.mouseCursorStyles = {
             default: "default",
             grab: "grab",
-            grabbing: "grabbing"
+            grabbing: "grabbing",
+            help: "help",
         }
         this.drawStyles = {
             pencil: "pencil",
@@ -40,6 +41,8 @@ class BuildMode {
             ObjectTypes.ROTATING_FIREBALL_CENTER,
             ObjectTypes.MOVING_PLATFORM,
         ];
+        this.currentPreviewOffset = 0;
+        this.currentPreviewOffsetChanger = -0.025;
         this.objectsWithoutSFXAfterPlacing = [ObjectTypes.DISAPPEARING_BLOCK, ObjectTypes.BLUE_BLOCK, ObjectTypes.RED_BLOCK];
     }
 
@@ -64,6 +67,16 @@ class BuildMode {
             else {
                 this.currentObjectDirection = directions[currentIndex + 1];
             }
+        }
+    }
+
+    static updatePermissionsSquareOffset() {
+        this.currentPreviewOffset += this.currentPreviewOffsetChanger;
+        if (this.currentPreviewOffset < -0.5) {
+            this.currentPreviewOffsetChanger = this.currentPreviewOffsetChanger * -1;
+        }
+        else if (this.currentPreviewOffset > 0) {
+            this.currentPreviewOffsetChanger = this.currentPreviewOffsetChanger * -1;
         }
     }
 
@@ -111,7 +124,7 @@ class BuildMode {
         this.dragPlayerHandler(allObjectsAtCurrentTile, currentTile, tilePosX, tilePosY);
 
         //If tile is free -> logic for setting new objects
-        if (placementAllowed && !this.draggingPlayer && !hoveredOverPlayer) {
+        if (placementAllowed && !this.draggingPlayer && !hoveredOverPlayer && !Controller.jump) {
             this.changeMouseCursor(this.mouseCursorStyles.default);
 
             if (this.rectangleStyleDrawing) {
@@ -122,7 +135,7 @@ class BuildMode {
                 const extraWidth = this.currentSelectedObject.size > 1 ? (this.currentSelectedObject.size - 1) / 2 : 0;
                 const offsetToCenter = extraWidth * this.tileMapHandler.tileSize;
 
-                this.drawPermissionSquare(tilePosX - extraWidth, tilePosY, tilePosX + 1 + extraWidth, tilePosY + 1, 
+                this.drawPermissionSquare(tilePosX - extraWidth, tilePosY, tilePosX + 1 + extraWidth, tilePosY + 1,
                     '90ee90', offsetToCenter);
             }
             //Setting object
@@ -148,27 +161,53 @@ class BuildMode {
                 }
             }
             else {
-                this.changeMouseCursor(this.mouseCursorStyles.default);
-                !this.rectangleStyleDeletion &&
-                    this.drawPermissionSquare(tilePosX, tilePosY, tilePosX + 1, tilePosY + 1, '8b0000');
+                const changeableObjectsHoveringOver = allObjectsAtCurrentTile.filter(objectAtCurrentTile =>
+                    (objectAtCurrentTile.spriteObject[0].type === SpritePixelArrays.SPRITE_TYPES.object
+                        || objectAtCurrentTile?.type === ObjectTypes.TREADMILL)
+                    && objectAtCurrentTile?.type !== ObjectTypes.CANON_BALL && objectAtCurrentTile?.type !== ObjectTypes.ROCKET && objectAtCurrentTile?.type !== ObjectTypes.LASER &&
+                    objectAtCurrentTile?.changeableInBuildMode);
 
-                //Tooltip if click on occupied tile again
+                this.changeMouseCursor(this.mouseCursorStyles.default);
+
+                if (!this.rectangleStyleDeletion) {
+                    const readyForToolTip = (changeableObjectsHoveringOver.length && !this.mousePressed) || this.showingToolTip;
+                    readyForToolTip && this.changeMouseCursor(this.mouseCursorStyles.help);
+                    this.drawPermissionSquare(tilePosX, tilePosY, tilePosX + 1, tilePosY + 1, readyForToolTip ? 'FFA500' : '8b0000');
+                }
+
                 if (Controller.mousePressed && !this.mousePressed) {
                     this.mousePressed = true;
-                    const changeableObjectsHoveringOver = allObjectsAtCurrentTile.filter(objectAtCurrentTile =>
-                        (objectAtCurrentTile.spriteObject[0].type === SpritePixelArrays.SPRITE_TYPES.object
-                            || objectAtCurrentTile?.type === ObjectTypes.TREADMILL)
-                        && objectAtCurrentTile?.type !== ObjectTypes.CANON_BALL && objectAtCurrentTile?.type !== ObjectTypes.ROCKET && objectAtCurrentTile?.type !== ObjectTypes.LASER &&
-                        objectAtCurrentTile?.changeableInBuildMode);
-                    if (changeableObjectsHoveringOver.length) {
+                    //copy sprite
+                    if(Controller.jump) {
+                        this.copySprite(currentTile, allObjectsAtCurrentTile);
+                    }
+                    //Tooltip if click on occupied tile again
+                    else if (changeableObjectsHoveringOver.length) {
                         //pass all objects hovering over (should be only paths and objects on top). reverse, so that path attributes are at the bottom
                         this.showTooltipWithExtraAttributes(tilePosX, tilePosY, changeableObjectsHoveringOver.reverse());
                     }
+
                 }
             }
         }
         //Deleting object
         this.deleteHandler(allObjectsAtCurrentTile, currentTile, tilePosX, tilePosY);
+    }
+
+    static copySprite(currentTile, allObjectsAtCurrentTile) {
+        if(currentTile) {
+            const copiedSprite = SpritePixelArrays.allSprites.find((sprite) => sprite.name === currentTile);
+            if (copiedSprite) {
+                TabNavigation.setSelectedSprite(copiedSprite, 0);
+            }
+        }
+        else if(allObjectsAtCurrentTile) {
+            const topSpriteDescriptiveName = allObjectsAtCurrentTile.reverse()[0]?.spriteObject?.[0].descriptiveName;
+            const copiedSprite = SpritePixelArrays.allSprites.find((sprite) => sprite.descriptiveName === topSpriteDescriptiveName);
+            if (copiedSprite) {
+                TabNavigation.setSelectedSprite(copiedSprite, 0);
+            }
+        }
     }
 
     static drawingAreaReleased(option = "setObjects") {
@@ -194,7 +233,7 @@ class BuildMode {
     static setSingleObject(tilePosX, tilePosY) {
         let { levelObjects, deko } = this.tileMapHandler;
 
-        //Tiles are numbers, other objects are no
+        //Tiles are numbers, other objects are not
         if (isNaN(this.currentSelectedObject?.name)) {
             //deko
             if (this.currentSelectedObject.name === ObjectTypes.DEKO) {
@@ -279,7 +318,7 @@ class BuildMode {
         const decoHoveringOver = allObjectsAtCurrentTile.filter(o => o.type === SpritePixelArrays.SPRITE_TYPES.deko);
 
         //Objects
-        if (this.currentSelectedObject?.type === SpritePixelArrays.SPRITE_TYPES.object) {
+        if (this.currentSelectedObject?.type === SpritePixelArrays.SPRITE_TYPES.object && !SpritePixelArrays.backgroundSprites.includes(this.currentSelectedObject?.name)) {
             //Moving platform
             if (SpritePixelArrays.movingPlatformSprites.includes(this.currentSelectedObject?.name)) {
                 const touchingOtherMovingPlatForm = this.tileMapHandler.layers[3].some(movingPlatform =>
@@ -341,13 +380,13 @@ class BuildMode {
         const content = document.createElement("div");
         this.showingToolTip = true;
 
-        const objectsInlcudePath = currentObjects.some(o => o.type === ObjectTypes.PATH_POINT);
+        const needsDoubleHeading = currentObjects.length > 1 && currentObjects.some(o => o.type === ObjectTypes.PATH_POINT || o.type === ObjectTypes.EVENT_TRIGGER);
 
         currentObjects.forEach((currentObject, index) => {
             const spriteObject = SpritePixelArrays.getSpritesByName(currentObject.type)[0];
 
             // If mutliple objects or only path, clarify which properties belong wo which object
-            if (objectsInlcudePath) {
+            if (needsDoubleHeading) {
                 const heading = ObjectsTooltipElementsRenderer.createSmallHeading(`${spriteObject.descriptiveName} properties:`);
                 content.appendChild(heading);
             }
@@ -369,6 +408,10 @@ class BuildMode {
                     if (attribute.name === SpritePixelArrays.changeableAttributeTypes.dialogue) {
                         const dialogueWindow = ObjectsTooltipElementsRenderer.createDialogueWindow(attribute, currentObject);
                         content.appendChild(dialogueWindow);
+                    }
+                    else if(attribute.formElement === SpritePixelArrays.changeableAttributeFormElements.events) {
+                        const eventsToolTip = EventsTooltipRenderer.renderEventsTooltip(currentObject);
+                        content.appendChild(eventsToolTip);
                     }
                     else if (attribute.formElement === SpritePixelArrays.changeableAttributeFormElements.toggle) {
                         const toggleSwitch = ObjectsTooltipElementsRenderer.createToggleSwitch(attribute, currentObject);
@@ -405,7 +448,7 @@ class BuildMode {
         content.appendChild(submitButtonWrapper);
 
         const posInTool = this.tileMapHandler.getValuePositionsForTile(tilePosX, tilePosY + 1);
-        const xPos = canvasOffsetLeft + posInTool.x - 120 - this.tileMapHandler.tileSize / 2 - Camera.viewport.left;
+        const xPos = canvasOffsetLeft + posInTool.x - 120 - this.tileMapHandler.halfTileSize - Camera.viewport.left;
         const yPos = canvasOffsetTop + posInTool.y - Camera.viewport.top;
         TooltipHandler.repositionAndShowTooltip("canvasObjectToolTip", yPos, xPos, heading, content)
     }
@@ -440,7 +483,10 @@ class BuildMode {
     }
 
     static dragPlayerHandler(allObjectsAtCurrentTile, currentTile, tilePosX, tilePosY) {
-
+        if (currentTile != null && Controller.pause) {
+            this.player.x = tilePosX * this.tileMapHandler.tileSize;
+            this.player.y = (tilePosY + 1) * this.tileMapHandler.tileSize - this.player.drawHeight;
+        }
         if (this.draggingPlayer && currentTile === 0 &&
             (allObjectsAtCurrentTile.length === 0 ||
                 allObjectsAtCurrentTile.every(objectAtCurrentTile =>
@@ -449,7 +495,7 @@ class BuildMode {
                     SpritePixelArrays.foregroundSprites.includes(objectAtCurrentTile.spriteObject[0]?.name)
                 ))) {
             this.player.x = tilePosX * this.tileMapHandler.tileSize;
-            this.player.y = tilePosY * this.tileMapHandler.tileSize;
+            this.player.y = (tilePosY + 1) * this.tileMapHandler.tileSize - this.player.drawHeight;
         }
     }
 
@@ -480,7 +526,7 @@ class BuildMode {
     }
 
     static deleteObject(currentTile, allObjectsAtCurrentTile, tilePosX, tilePosY) {
-        if (currentTile !== 0) {
+        if (currentTile !== 0 && LayerHandler.tileLayer) {
             tileMapHandler.tileMap[tilePosY][tilePosX] = 0;
         }
         if (allObjectsAtCurrentTile.length) {
@@ -497,7 +543,7 @@ class BuildMode {
                 const { tilePosX, tilePosY } = positionToRemove;
                 this.removeFromData("levelObjects", tilePosX, tilePosY);
                 this.removeFromData("deko", tilePosX, tilePosY);
-                PathBuildHandler.removePathFromData(tilePosX, tilePosY, this.objectsDeletedInOneGo);
+                LayerHandler.objectLayer && PathBuildHandler.removePathFromData(tilePosX, tilePosY, this.objectsDeletedInOneGo);
             })
         }
         tileMapHandler.createStaticTiles();
@@ -519,6 +565,20 @@ class BuildMode {
         const arrLength = arr.length - 1;
         for (var i = arrLength; i >= 0; i--) {
             if (arr[i].initialX === tilePosX && arr[i].initialY === tilePosY) {
+                // Check if layer is visible
+                if (arr[i].type === ObjectTypes.WATER && !LayerHandler.waterLayer) {
+                    return;
+                }
+                if (arr[i].type === ObjectTypes.DEKO && !LayerHandler.decoLayer) {
+                    return;
+                }
+                if (arr[i]?.spriteObject?.[0]?.type === SpritePixelArrays.SPRITE_TYPES.object && !LayerHandler.objectLayer && arr[i].type !== ObjectTypes.WATER) {
+                    return;
+                }
+                if (SpritePixelArrays.foregroundSprites.includes(arr[i].type) && !LayerHandler.foregroundLayer) {
+                    return;
+                }
+                // Delete
                 this.objectsDeletedInOneGo.push({ x: tilePosX, y: tilePosY });
                 arr[i]?.type === ObjectTypes.START_FLAG && this.resetInitialPlayerPosition(tilePosX, tilePosY);
                 arr.splice(i, 1);
@@ -549,7 +609,8 @@ class BuildMode {
         this.rectangleDrawingEndingPoint = { x: endPosX, y: endPosY };
         const yValues = MathHelpers.sortNumbers([y, endPosY]);
         const xValues = MathHelpers.sortNumbers([x, endPosX]);
-        this.drawPermissionSquare(xValues[0], yValues[0], xValues[1] + 1, yValues[1] + 1, color);
+        this.drawPermissionSquare(xValues[0], yValues[0],
+            xValues[1] + 1, yValues[1] + 1, color);
     }
 
     static drawObjectPreviewOnScreen(actualXPos, actualYPos) {
@@ -564,20 +625,25 @@ class BuildMode {
 
         Display.drawImageWithAlpha(tileMapHandler.spriteCanvas,
             xPosInSpriteCanvas, this.currentSelectedObject.canvasYSpritePos,
-            tileSize, tileSize, actualXPos, actualYPos, tileSize, tileSize, 0.6);
+            tileSize, tileSize,
+            actualXPos, actualYPos,
+            tileSize, tileSize, 0.6);
     }
 
     static drawPermissionSquare(x, y, endPosX, endPosY, color, centerOffset = 0) {
+        this.updatePermissionsSquareOffset();
         const { tileSize } = tileMapHandler;
-        const actualXPos = x * tileSize;
-        const actualYPos = y * tileSize;
+        const previewX = x * tileSize;
+        const previewY = y * tileSize;
 
         if (color === '90ee90') {
-            this.drawObjectPreviewOnScreen(actualXPos + centerOffset, actualYPos);
+            this.drawObjectPreviewOnScreen(previewX + centerOffset, previewY);
         }
+        const actualXPos = previewX + this.currentPreviewOffset;
+        const actualYPos = previewY + this.currentPreviewOffset;
 
-        const actualXEndPos = endPosX * tileSize - 1;
-        const actualYEndPos = endPosY * tileSize - 1;
+        const actualXEndPos = endPosX * tileSize - 1 - this.currentPreviewOffset;
+        const actualYEndPos = endPosY * tileSize - 1 - this.currentPreviewOffset;
         Display.drawLine(actualXPos, actualYPos, actualXEndPos, actualYPos, color, 3);
         Display.drawLine(actualXPos, actualYEndPos, actualXEndPos, actualYEndPos, color, 3);
         Display.drawLine(actualXPos, actualYPos, actualXPos, actualYEndPos, color, 3);

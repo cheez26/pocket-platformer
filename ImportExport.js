@@ -12,15 +12,7 @@ function importGame() {
     reader.readAsText(file, "UTF-8");
     reader.onload = function (evt) {
       try {
-        /*
-          Initially, set all abilitiy checkboxes to false. in case user implemented a game, where
-          an ability has not been implemented yet (f.e. dash)
-        */
-        player["dashChecked"] = false;
-        player["runChecked"] = false;
-        PlayerAttributesHandler.setInitialCheckboxValue("dashChecked");
-        PlayerAttributesHandler.setInitialCheckboxValue("runChecked");
-
+        resetPlayerMechanics();
         const fileContent = evt.target.result;
         const indexOfNewImporter = fileContent.indexOf(allDataStartComment);
         if (indexOfNewImporter > 0) {
@@ -53,6 +45,17 @@ function importGame() {
   }
 }
 
+function resetPlayerMechanics() {
+  /*
+    Initially, set all abilitiy checkboxes to false. in case user implemented a game, where
+    an ability has not been implemented yet (f.e. dash)
+  */
+  player["dashChecked"] = false;
+  player["runChecked"] = false;
+  PlayerAttributesHandler.setInitialCheckboxValue("dashChecked");
+  PlayerAttributesHandler.setInitialCheckboxValue("runChecked");
+}
+
 function resetUIValuesInTool() {
   player.setAnimationProperties();
   WorldColorChanger.changeLevelColor(1);
@@ -61,6 +64,7 @@ function resetUIValuesInTool() {
   TransitionAnimationHandler.setDurationElementValue(TransitionAnimationHandler.animationFrames);
   TransitionAnimationHandler.setTypeElementValue(TransitionAnimationHandler.animationType);
   SpritePixelArrays.fillAllSprites();
+  SpritePixelArrays.indexAllSprites();
   tileMapHandler.setTileTypes();
   spriteSheetCreator.setCanvasSize();
   spriteSheetCreator.createSpriteSheet();
@@ -123,10 +127,13 @@ function exportGame() {
   allData.effects = WorldDataHandler.effects;
   allData.backgroundColor = WorldDataHandler.backgroundColor;
   allData.textColor = WorldDataHandler.textColor;
+  allData.backgroundImage = WorldDataHandler.backgroundImage;
+  allData.backgroundImageSize = WorldDataHandler.backgroundImageSize;
   allData.animationFrames = TransitionAnimationHandler.animationFrames;
   allData.animationType = TransitionAnimationHandler.animationType;
   allData.playerObject = createPlayerAttributesSectionForAllData();
   allData.sounds = getCustomSounds();
+  allData.images = ImageHandler.images;
   allData.sprites = createChangedSpitesObject();
   bundledScripts = bundledScripts.replace("//putAllDataHere",
     `${allDataStartComment}
@@ -184,13 +191,18 @@ function createHtmlDocoumentWithCanvas() {
             background-image: none;
           }
           #myCanvas {
-            border: 1px solid white;
             width:auto;
             height:auto;
-            background-color: blue;
+            background-color: black;
           }
           #mobileControls {
             display: none;
+          }
+          #loadingText {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            color: white;
           }
           body {
             display: flex;
@@ -205,7 +217,8 @@ function createHtmlDocoumentWithCanvas() {
   const metaAttributes = [
     { 'name': 'viewport', 'content': "width=device-width, initial-scale=1.0; maximum-scale=1.0, user-scalable=0" },
     { 'charset': 'UTF-8' },
-    { 'http-equiv': 'imagetoolbar', 'content': 'no' }
+    { 'http-equiv': 'imagetoolbar', 'content': 'no' },
+    { 'http-equiv': 'ScreenOrientation', 'content': 'autoRotate:disabled' },
   ];
   metaAttributes.forEach(metaAttribute => {
     var meta = document.createElement('meta');
@@ -228,6 +241,12 @@ function createHtmlDocoumentWithCanvas() {
   var gameCanvas = emptyHtmlDocument.createElement("canvas");
   Helpers.addAttributesToHTMLElement(gameCanvas, { "id": "myCanvas" });
   gameScreen.appendChild(gameCanvas);
+  gameScreen.style.position = "relative";
+
+  var loadingText = document.createElement("div");
+  loadingText.innerHTML = "Loading...";
+  loadingText.id = "loadingText";
+  gameScreen.appendChild(loadingText);
 
   var tileCanvas = emptyHtmlDocument.createElement("canvas");
   Helpers.addAttributesToHTMLElement(tileCanvas, { "id": "tileCanvas" });
@@ -238,6 +257,11 @@ function createHtmlDocoumentWithCanvas() {
   Helpers.addAttributesToHTMLElement(noiseCanvas, { "id": "noiseCanvas", "width": "900ox", height: "520px" });
   noiseCanvas.style.display = "none";
   gameScreen.appendChild(noiseCanvas);
+
+  var backgroundImagesCanvas = emptyHtmlDocument.createElement("canvas");
+  Helpers.addAttributesToHTMLElement(backgroundImagesCanvas, { "id": "imagePreviewCanvas", "width": "400ox", height: "400px" });
+  backgroundImagesCanvas.style.display = "none";
+  gameScreen.appendChild(backgroundImagesCanvas);
 
   const mobileControls = Object.assign(
     document.createElement(`div`),
@@ -294,7 +318,7 @@ function checkIfSoundEmptyOrExternal(url) {
 
 function bundleAllScripts() {
   var scriptTexts = '';
-  const unNeededScripts = ['htmlgame', 'ImportExport', 'LegacyImporter', 'WorldColorHandler', 'DrawHelpers', 'BuildMode', 'CustomSpritesElementsRenderer',
+  const unNeededScripts = ['EmptyGame', 'demoLevels', 'htmlgame', 'ImportExport', 'LegacyImporter', 'WorldColorHandler', 'DrawHelpers', 'BuildMode', 'CustomSpritesElementsRenderer',
     'LevelNavigationHandler', 'TabNavigation', 'TabPagination', 'DrawSectionHandler', 'helpers', 'ObjectsTooltipElementsRenderer', 'HeaderNavigationHandler',
     'huebee.min', 'ProTipHandler', 'TooltipHandler', 'LevelSizeHandler', 'EffectHtmlRenderer', 'SoundHandlerRenderer', 'PathBuildHandler', 'FileSaver', 'Base64Images'];
 

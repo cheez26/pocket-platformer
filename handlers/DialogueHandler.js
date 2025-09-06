@@ -39,7 +39,7 @@ class DialogueHandler {
         this.rightPos = Camera.viewport.left + Camera.viewport.width - border;
         this.topPos = Camera.viewport.top + Camera.viewport.height - (this.dialogueHeight / Camera.viewport.scale) - border;
 
-        if(this.tileMapHandler) {
+        if (this.tileMapHandler) {
             this.avatarSize = this.tileMapHandler.tileSize * 3 / Camera.viewport.scale;
             this.avatarRightPos = this.rightPos - this.avatarSize - this.avatarOuterPadding / Camera.viewport.scale
             this.avatarLeftPos = this.leftPos + this.avatarOuterPadding / Camera.viewport.scale;
@@ -92,12 +92,13 @@ class DialogueHandler {
             calculatedDialogueWidth, this.currentAnimationHeight, "000000");
         Display.drawRectangleBorder(leftPos, currentBoxTopPosition,
             calculatedDialogueWidth, this.currentAnimationHeight, "FFFFFF");
-        Display.drawLine(leftPos + calculatedDialogueWidth - 80, currentBoxTopPosition, leftPos + calculatedDialogueWidth - 20, topPos,
-            "000000", 2);
 
         const avatarOnTheLeft = this.dialogue[this.currentIndex].avatar?.position === AnimationHelper.facingDirections.left;
 
         if (this.currentAnimationHeight >= calculatedDialogueHeight) {
+            Display.drawLine(leftPos + calculatedDialogueWidth - 80, currentBoxTopPosition, leftPos + calculatedDialogueWidth - 20, topPos,
+                "000000", 2);
+
             for (var i = 0; i <= currentLine; i++) {
                 if (i < this.dialogue[this.currentIndex].lines.length) {
                     this.animateText(
@@ -131,17 +132,17 @@ class DialogueHandler {
         const avatarBorderPadding = this.avatarInnerPadding / Camera.viewport.scale;
 
         if (avatar.border) {
-            const borderSize = (this.tileMapHandler.tileSize * 3 + this.avatarInnerPadding  * 2) / Camera.viewport.scale;
+            const borderSize = (this.tileMapHandler.tileSize * 3 + this.avatarInnerPadding * 2) / Camera.viewport.scale;
             Display.drawRectangleBorder(avatarLeftPos - avatarBorderPadding,
                 top - avatarBorderPadding,
                 borderSize,
                 borderSize,
                 "FFFFFF");
         }
-        Display.drawPixelArray(avatar.spriteObject.animation[animationIndex].sprite,
+        Display.drawPixelArrayWithOffset(avatar.spriteObject.animation[animationIndex].sprite,
             avatarLeftPos, top,
             Math.round(this.tileMapHandler.pixelArrayUnitSize * 3 / Camera.viewport.scale),
-            avatar.spriteObject.animation[animationIndex].sprite[0].length, 
+            avatar.spriteObject.animation[animationIndex].sprite[0].length,
             avatar.spriteObject.animation[animationIndex].sprite.length
         );
     }
@@ -198,13 +199,14 @@ class DialogueHandler {
     static showDialogueUpArrow(xPos, yPos) {
         const { pixelArrayUnitSize, tileSize } = tileMapHandler;
         const yAnchor = yPos + tileSize - pixelArrayUnitSize;
+        const correctedSize = pixelArrayUnitSize + 0.5;
 
         Display.drawRectangle(xPos + pixelArrayUnitSize, yAnchor - pixelArrayUnitSize,
-            pixelArrayUnitSize * 6, pixelArrayUnitSize, "FFFFFF")
+            pixelArrayUnitSize * 6, correctedSize, "FFFFFF")
         Display.drawRectangle(xPos + pixelArrayUnitSize * 2, yAnchor - pixelArrayUnitSize * 2,
-            pixelArrayUnitSize * 4, pixelArrayUnitSize, "FFFFFF")
+            pixelArrayUnitSize * 4, correctedSize, "FFFFFF")
         Display.drawRectangle(xPos + pixelArrayUnitSize * 3, yAnchor - pixelArrayUnitSize * 3,
-            pixelArrayUnitSize * 2, pixelArrayUnitSize, "FFFFFF")
+            pixelArrayUnitSize * 2, correctedSize, "FFFFFF")
     }
 
     static createDialogObject(dialogue, avatar) {

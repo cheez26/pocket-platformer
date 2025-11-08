@@ -6,7 +6,13 @@ class TransitionAnimationHandler {
             none: "none",
             tiles: "tiles",
             cutOutCircle: "cutOutCircle",
-            wholeScreen: "wholeScreen"
+            wholeScreen: "wholeScreen",
+            collide: "collide",
+            radialWipe: "radialWipe",
+            explode: "explode",
+            dissolve: "dissolve",
+            rotatingCube: "rotatingCube",
+            diamondSwipe: "diamondSwipe",
         }
         this.currentAnimationType = null;
         this.currentAnimationFrames = null;
@@ -35,32 +41,12 @@ class TransitionAnimationHandler {
         //fade in
         if (PlayMode.currentPauseFrames > fadeInFrames) {
             const currentFrame = fadeInFrames - (PlayMode.currentPauseFrames - fadeInFrames);
-            switch (this.currentAnimationType) {
-                case this.animationTypes.tiles:
-                    this.animateFade(currentFrame, fadeInFrames);
-                    break;
-                case this.animationTypes.wholeScreen:
-                    this.animateFadeWholeScreen(currentFrame, fadeInFrames);
-                    break;
-                case this.animationTypes.cutOutCircle:
-                    this.animateFadeCircle(PlayMode.currentPauseFrames - fadeInFrames, fadeInFrames);
-                    break;
-            }
+            this.drawFadeInAnimation(currentFrame, fadeInFrames)
             //Camera.zoomToObject(0.01, player);
         }
         //fade out
         else if (PlayMode.currentPauseFrames < fadeOutFrames) {
-            switch (this.currentAnimationType) {
-                case this.animationTypes.tiles:
-                    this.animateFade(PlayMode.currentPauseFrames, fadeOutFrames);
-                    break;
-                case this.animationTypes.wholeScreen:
-                    this.animateFadeWholeScreen(PlayMode.currentPauseFrames, fadeInFrames);
-                    break;
-                case this.animationTypes.cutOutCircle:
-                    this.animateFadeCircle(fadeInFrames - PlayMode.currentPauseFrames, fadeInFrames);
-                    break;
-            }
+            this.drawFadeOutAnimation(PlayMode.currentPauseFrames, fadeOutFrames)
         }
         //stay black for some frames
         else {
@@ -76,25 +62,103 @@ class TransitionAnimationHandler {
         }
     }
 
-    static animateFadeCircle(currenFrame, totalFrames) {
-        const biggestRadius = Camera.viewport.width;
-        const radiusStep = biggestRadius / totalFrames;
-        const radius = radiusStep * currenFrame;
-        Display.ctx.fillStyle = `rgb(0,0,0)`;
-        Display.ctx.beginPath();
-        Display.ctx.rect(Camera.viewport.left, Camera.viewport.top, Camera.viewport.width, Camera.viewport.height);
-        Display.ctx.arc(player.x + tileMapHandler.halfTileSize, player.y + tileMapHandler.halfTileSize, 
-            radius, 0, 2 * Math.PI, true);
-        Display.ctx.fill();
-        Display.ctx.closePath();
+    static drawFadeInAnimation(currentFrame, fadeInFrames, viewport = Camera.viewport, ctx = Display.ctx, preview = false) {
+        switch (this.currentAnimationType) {
+            case this.animationTypes.tiles:
+                TransitionAnimations.animateFade(currentFrame, fadeInFrames, viewport, ctx, preview);
+                break;
+            case this.animationTypes.wholeScreen:
+                TransitionAnimations.animateFadeWholeScreen(currentFrame, fadeInFrames, viewport, ctx);
+                break;
+            case this.animationTypes.cutOutCircle:
+                TransitionAnimations.animateFadeCircle(currentFrame, fadeInFrames, viewport, ctx, preview);
+                break;
+            case this.animationTypes.collide:
+                TransitionAnimations.drawCollide(currentFrame, fadeInFrames, viewport, ctx);
+                break;
+            case this.animationTypes.radialWipe:
+                TransitionAnimations.drawRadialWipe(currentFrame, fadeInFrames, viewport, ctx);
+                break;
+            case this.animationTypes.explode:
+                TransitionAnimations.drawDiamondExplosion(currentFrame, fadeInFrames, viewport, ctx);
+                break;
+            case this.animationTypes.dissolve:
+                TransitionAnimations.drawDissolve(currentFrame, fadeInFrames, viewport, ctx);
+                break;
+            case this.animationTypes.rotatingCube:
+                TransitionAnimations.drawRotatingHole(currentFrame, fadeInFrames, viewport, ctx);
+                break;
+            case this.animationTypes.diamondSwipe:
+                TransitionAnimations.drawDiamondSwipe(currentFrame, fadeInFrames, viewport, ctx);
+                break;
+        }
     }
 
-    static animateFadeWholeScreen(currentFrame, totalFrames) {
-        const percent = currentFrame / totalFrames;
-        Display.drawRectangleWithAlpha(Camera.viewport.left,
-            Camera.viewport.top,
-            Camera.viewport.width,
-            Camera.viewport.height, "000000", Display.ctx, percent);
+    static drawFadeOutAnimation(currentFrame, fadeOutFrames, viewport = Camera.viewport, ctx = Display.ctx, preview = false) {
+        switch (this.currentAnimationType) {
+            case this.animationTypes.tiles:
+                TransitionAnimations.animateFade(currentFrame, fadeOutFrames, viewport, ctx, preview);
+                break;
+            case this.animationTypes.wholeScreen:
+                TransitionAnimations.animateFadeWholeScreen(currentFrame, fadeOutFrames, viewport, ctx);
+                break;
+            case this.animationTypes.cutOutCircle:
+                TransitionAnimations.animateFadeCircle(currentFrame, fadeOutFrames, viewport, ctx, preview);
+                break;
+            case this.animationTypes.collide:
+                TransitionAnimations.drawCollide(currentFrame, fadeOutFrames, viewport, ctx);
+                break;
+            case this.animationTypes.radialWipe:
+                TransitionAnimations.drawRadialWipe(currentFrame, fadeOutFrames, viewport, ctx);
+                break;
+            case this.animationTypes.explode:
+                TransitionAnimations.drawDiamondExplosion(currentFrame, fadeOutFrames, viewport, ctx);
+                break;
+            case this.animationTypes.dissolve:
+                TransitionAnimations.drawDissolve(currentFrame, fadeOutFrames, viewport, ctx);
+                break;
+            case this.animationTypes.rotatingCube:
+                TransitionAnimations.drawRotatingHole(currentFrame, fadeOutFrames, viewport, ctx);
+                break;
+            case this.animationTypes.diamondSwipe:
+                TransitionAnimations.drawDiamondSwipe(currentFrame, fadeOutFrames, viewport, ctx);
+                break;
+        }
+    }
+
+    static showPreview() {
+        const half = Math.ceil(this.animationFrames / 2);
+        const totalFrames = half;
+        let count = 0;
+        const previewCanvas = document.getElementById("transitionCanvas");
+        const previewCanvasCtx = previewCanvas.getContext("2d");
+        const fakeViewport = {
+            left: 0,
+            top: 0,
+            width: 158,
+            height: 86.
+        }
+        this.currentAnimationType = this.animationType;
+        this.currentAnimationFrames = this.animationFrames;
+
+        const timer = setInterval(() => {
+            previewCanvasCtx.clearRect(0, 0, fakeViewport.width, fakeViewport.height);
+            let currentFrame;
+
+            if (count < half) {
+                currentFrame = count + 1;
+                this.drawFadeInAnimation(currentFrame, totalFrames, fakeViewport, previewCanvasCtx, true)
+            } else {
+                currentFrame = totalFrames - (count - half);
+                this.drawFadeOutAnimation(currentFrame, totalFrames, fakeViewport, previewCanvasCtx, true)
+            }
+            count++;
+            if (count >= this.animationFrames) {
+                clearInterval(timer);
+                previewCanvasCtx.clearRect(0, 0, fakeViewport.width, fakeViewport.height);
+                console.log("Done!");
+            }
+        }, 20);
     }
 
     static setTypeElementValue(type) {
@@ -106,22 +170,5 @@ class TransitionAnimationHandler {
         this.animationFrames = value;
         document.getElementById("transitionDuration").value = value;
         document.getElementById("transitionDurationValue").innerHTML = value;
-    }
-
-    static animateFade(currentFrame, totalFrames) {
-        const percent = currentFrame / totalFrames * 100;
-        const parcelAmount = 10;
-        const parcelHeight = Display.canvasHeight / parcelAmount;
-        const widthParcelAmount = Math.ceil(Display.canvasWidth / parcelHeight);
-
-        for (var i = 0; i <= widthParcelAmount; i++) {
-            for (var j = 0; j <= parcelAmount; j++) {
-                const relativeWidth = parcelHeight / 100 * percent + 1;
-                Display.drawRectangle(i * parcelHeight + ((parcelHeight - relativeWidth) / 2) + Camera.viewport.left,
-                    j * parcelHeight + ((parcelHeight - relativeWidth) / 2) + Camera.viewport.top,
-                    relativeWidth,
-                    relativeWidth);
-            }
-        }
     }
 }

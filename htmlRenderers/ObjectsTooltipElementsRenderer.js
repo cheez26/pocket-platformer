@@ -364,6 +364,12 @@ class ObjectsTooltipElementsRenderer {
         this.createTransitionOption("tiles", "Fading tiles", selectType, currentObject);
         this.createTransitionOption("cutOutCircle", "Cut out circle", selectType, currentObject);
         this.createTransitionOption("wholeScreen", "Screen fade", selectType, currentObject);
+        this.createTransitionOption("collide", "Colliding boxes", selectType, currentObject);
+        this.createTransitionOption("radialWipe", "Radial wipe", selectType, currentObject);
+        this.createTransitionOption("explode", "Explode", selectType, currentObject);
+        this.createTransitionOption("dissolve", "Dissolve", selectType, currentObject);
+        this.createTransitionOption("rotatingCube", "Rotating cube", selectType, currentObject);
+        this.createTransitionOption("diamondSwipe", "Diamond swipe", selectType, currentObject);
         const transitionDurationWrapper = document.createElement("div");
         transitionDurationWrapper.className = "marginTop12 changeableAttributesWrapper";
         const transitionDurationLabel = document.createElement("span");
@@ -373,7 +379,7 @@ class ObjectsTooltipElementsRenderer {
         const transitionDurationInput = document.createElement("input");
         transitionDurationInput.style.marginRight = "12px";
         Helpers.addAttributesToHTMLElement(transitionDurationInput, {
-            "type": "range", min: 2, max: 96, value: currentObject.transitionLength || 48,
+            "type": "range", min: 2, max: 160, value: currentObject.transitionLength || 48,
             class: "slider", step: 2, id: "customTransitionDuration"
         });
         transitionDurationInput.onchange = (event) => {

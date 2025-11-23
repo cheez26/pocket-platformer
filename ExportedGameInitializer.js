@@ -8,6 +8,13 @@ class ExportedGameInitializer {
         WorldDataHandler.textColor = allData.textColor;
         WorldDataHandler.backgroundImage = allData.backgroundImage;
         WorldDataHandler.backgroundImageSize = allData.backgroundImageSize;
+        WorldDataHandler.selectedFont = allData.selectedFont || "DotGothic16";
+        WorldDataHandler.customFont = allData.customFont;
+        if(allData.customFont) {
+            FontHandler.loadCustomFont(allData.customFont);
+        }
+        WorldDataHandler.fontSize = allData.fontSize || 17;
+
         TransitionAnimationHandler.animationFrames = allData.animationFrames;
         TransitionAnimationHandler.animationType = allData.animationType;
         if (allData.images) {

@@ -1,0 +1,184 @@
+/**
+ * Handles activation/deactivation logic for enemies
+ */
+class EnemyActivationHandler {
+    /**
+     * Check if enemy should be activated
+     * @param {Enemy} enemy - The enemy to check
+     * @param {Object} activationConfig - Configuration for activation conditions
+     * @returns {boolean} - Whether the enemy should be active
+     */
+    static shouldActivate(enemy, activationConfig) {
+        if (Game.playMode !== Game.PLAY_MODE) return false;
+        if (!this.isEnemyInViewport(enemy)) return false;
+
+        if (!activationConfig) return true;
+
+        const { type, value } = activationConfig;
+
+        switch (type) {
+            case 'alwaysActive':
+                return true;
+
+            case 'afterSeconds':
+                if (!enemy.activationTimer) enemy.activationTimer = 0;
+                enemy.activationTimer++;
+                return enemy.activationTimer >= value * 60; // Convert seconds to frames
+
+            case 'playerInDistance':
+                return this.isPlayerInDistance(enemy, value);
+
+            case 'canSeePlayer':
+                return this.canEnemySeePlayer(enemy);
+
+            case 'playerApproxSameX':
+                return this.isPlayerApproximatelySameX(enemy, value);
+
+            case 'playerApproxSameY':
+                return this.isPlayerApproximatelySameY(enemy, value);
+
+            case 'playerLookingOppositeDirection':
+                return !this.isPlayerLookingAtEnemy(enemy);
+
+            default:
+                return true;
+        }
+    }
+
+    /**
+     * Check if enemy should become inactive
+     * @param {Enemy} enemy - The enemy to check
+     * @param {Object} inactivationConfig - Configuration for inactivation conditions
+     * @returns {boolean} - Whether the enemy should become inactive
+     */
+    static shouldDeactivate(enemy, inactivationConfig) {
+        if (!inactivationConfig) return false;
+
+        const { type, value } = inactivationConfig;
+
+        switch (type) {
+            case 'neverInactive':
+                return false;
+
+            case 'afterSeconds':
+                if (!enemy.inactivationTimer) enemy.inactivationTimer = 0;
+                enemy.inactivationTimer++;
+                return enemy.inactivationTimer >= value * 60; // Convert seconds to frames
+
+            case 'playerFurtherThanDistance':
+                return !this.isPlayerInDistance(enemy, value);
+
+            case 'notSeeingPlayer':
+                return !this.canEnemySeePlayer(enemy);
+
+            case 'playerNotApproxSameX':
+                return !this.isPlayerApproximatelySameX(enemy, value);
+
+            case 'playerNotApproxSameY':
+                return !this.isPlayerApproximatelySameY(enemy, value);
+
+            case 'playerLookingSameDirection':
+                return this.isPlayerLookingAtEnemy(enemy);
+
+            default:
+                return false;
+        }
+    }
+
+    /**
+     * Check if player is within distance
+     * @private
+     */
+    static isPlayerInDistance(enemy, distance) {
+        if (!PlayMode.player) return false;
+
+        const dx = PlayMode.player.x - enemy.x;
+        const dy = PlayMode.player.y - enemy.y;
+        const distanceSquared = dx * dx + dy * dy;
+        const maxDistance = distance * enemy.tileSize;
+
+        return distanceSquared <= maxDistance * maxDistance;
+    }
+
+    /**
+     * Check if enemy can see player (line of sight)
+     * @private
+     */
+    static canEnemySeePlayer(enemy) {
+        if (!PlayMode.player || !tileMapHandler) return false;
+
+        return TilemapHelpers.doTwoObjectsSeeEachOther(enemy, PlayMode.player, tileMapHandler);
+    }
+
+    /**
+     * Check if player is approximately on same X axis as enemy (within buffer)
+     * @private
+     */
+    static isPlayerApproximatelySameX(enemy, bufferTiles = 0.5) {
+        if (!PlayMode.player) return false;
+
+        const buffer = bufferTiles * enemy.tileSize;
+        const dx = Math.abs(PlayMode.player.x - enemy.x);
+
+        return dx <= buffer;
+    }
+
+    /**
+     * Check if player is approximately on same Y axis as enemy (within buffer)
+     * @private
+     */
+    static isPlayerApproximatelySameY(enemy, bufferTiles = 0.5) {
+        if (!PlayMode.player) return false;
+
+        const player = PlayMode.player;
+        const playerTop = player.y;
+        const playerBottom = player.y + player.height - 2;
+        const enemyTop = enemy.y;
+        const enemyBottom = enemy.y + enemy.height;
+
+        return !player.falling && !player.jumping &&
+            playerBottom > enemyTop && playerTop < enemyBottom;
+    }
+
+    /**
+     * Check if the player is facing towards the enemy (looking at it).
+     * The player "looks at" the enemy when their facing direction matches the
+     * horizontal direction from the player to the enemy.
+     * @private
+     */
+    static isPlayerLookingAtEnemy(enemy) {
+        if (!PlayMode.player) return false;
+
+        // While wall-jumping the player is pushing off a wall, not looking at the enemy.
+        if (PlayMode.player.wallJumping) return false;
+
+        const directionToEnemy = enemy.x >= PlayMode.player.x
+            ? AnimationHelper.facingDirections.right
+            : AnimationHelper.facingDirections.left;
+
+        return PlayMode.player.facingDirection === directionToEnemy;
+    }
+
+    /**
+     * Check if the enemy overlaps the current camera viewport.
+     * @private
+     */
+    static isEnemyInViewport(enemy) {
+        if (!Camera || !Camera.viewport) return true;
+        const vp = Camera.viewport;
+        return (
+            enemy.x + enemy.width  > vp.left &&
+            enemy.x                < vp.left + vp.width &&
+            enemy.y + enemy.height > vp.top &&
+            enemy.y                < vp.top + vp.height
+        );
+    }
+
+    /**
+     * Reset activation timers when state changes
+     */
+    static resetTimers(enemy) {
+        enemy.activationTimer = 0;
+        enemy.inactivationTimer = 0;
+    }
+}

@@ -193,6 +193,14 @@ class TabNavigation {
       size: SpritePixelArrays.movingPlatformSprites.includes(selectedSprite.name) ? 3 : 1
     });
     DrawSectionHandler.changeSelectedSprite({ target: { value: selectedSprite.descriptiveName } }, true);
+    // Keep the enemy editor in sync
+    if (selectedSprite.type === SpritePixelArrays.SPRITE_TYPES.enemies && typeof EnemiesAttributesRenderer !== 'undefined') {
+      EnemiesAttributesRenderer.syncSelectedEnemyType(selectedSprite.name);
+    }
+    // Keep the weapon editor in sync
+    if (selectedSprite.type === SpritePixelArrays.SPRITE_TYPES.weapons && typeof WeaponAttributesRenderer !== 'undefined') {
+      WeaponAttributesRenderer.syncSelectedWeaponType(selectedSprite.name);
+    }
   }
 
   static markSelectedSprite(index, yPos) {

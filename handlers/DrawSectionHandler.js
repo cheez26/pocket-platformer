@@ -292,6 +292,37 @@ class DrawSectionHandler {
     static displaySpriteDescription(sprite) {
         if (sprite.description) {
             this.spriteDescriptionWrapper.innerHTML = sprite.description;
+            if (sprite.type === SpritePixelArrays.SPRITE_TYPES.weapons &&
+                typeof WeaponAttributesRenderer !== 'undefined' &&
+                typeof WeaponTypeAttributesHandler !== 'undefined' &&
+                WeaponTypeAttributesHandler.getAllWeaponTypes().includes(sprite.name)) {
+                this.spriteDescriptionWrapper.innerHTML +=
+                    `<div class="marginTop8 paddingTop8" style="border-top: 1px solid #ccc;"><span class="textAsLink"
+            onclick="WeaponAttributesRenderer.openForType('${sprite.name}')">\u25ba Weapon attributes
+        </span></div>`;
+            }
+        }
+        else if (sprite.multipleSprites) {
+            this.spriteDescriptionWrapper.innerHTML = sprite.description || "";
+            const filteredSprites = SpritePixelArrays.allSprites.filter((s) => s.name === sprite.name);
+            filteredSprites.forEach(es => {
+                this.spriteDescriptionWrapper.innerHTML +=
+                    `<div class="marginTop8"><span class="textAsLink"
+            onclick="DrawSectionHandler.changeSelectedSprite({ target: { value: '${es.descriptiveName}' } }, true)">
+            ${es.descriptiveName}
+        </span></div>`;
+            });
+
+            // If this animated sprite belongs to an enemy, offer a link straight to its
+            // attributes editor (opens the enemy UI with this enemy type pre-selected).
+            if (typeof EnemyTypeAttributesHandler !== 'undefined' &&
+                EnemyTypeAttributesHandler.getAllEnemyTypes().includes(sprite.name)) {
+                this.spriteDescriptionWrapper.innerHTML +=
+                    `<div class="marginTop8 paddingTop8" style="border-top: 1px solid #ccc;"><span class="textAsLink"
+            onclick="EnemiesAttributesRenderer.openForType('${sprite.name}')">
+            ► Enemy attributes
+        </span></div>`;
+            }
         }
         else if (sprite.type === SpritePixelArrays.SPRITE_TYPES.deko) {
             this.spriteDescriptionWrapper.innerHTML = "Just a decorational Element";
@@ -486,6 +517,7 @@ class DrawSectionHandler {
         const color = Controller.mousePressed ? this.currentColor : "transp";
         const colorChanged = sprite.animation[animationFrame].sprite[posInArray.y][posInArray.x] != color;
         sprite.animation[animationFrame].sprite[posInArray.y][posInArray.x] = color;
+
         if (colorChanged) {
             Helpers.debounce(() => {
                 this.redrawOutsideCanvases();

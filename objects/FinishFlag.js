@@ -79,21 +79,33 @@ class FinishFlag extends InteractiveLevelObject {
         }
     }
 
+    checkIfEnoughEnemiesDefeated() {
+        const requiredKills = parseInt(this.enemiesToDefeat) || 0;
+        const defeatedEnemies = this.tilemapHandler.defeatedEnemyCount || 0;
+        return defeatedEnemies >= requiredKills;
+    }
+
+    checkIfFlagShouldOpen() {
+        if (this.collectiblesNeeded) {
+            const collectibles = this.tilemapHandler.filterObjectsByTypes(ObjectTypes.COLLECTIBLE);
+            if (collectibles && !this.checkIfAllCollectiblesCollected(collectibles)) {
+                return false;
+            }
+        }
+        if (this.enemiesNeeded && !this.checkIfEnoughEnemiesDefeated()) {
+            return false;
+        }
+        return true;
+    }
+
     draw(spriteCanvas) {
-        if (!this.collectiblesNeeded) {
+        if (this.checkIfFlagShouldOpen()) {
             super.draw(spriteCanvas);
             this.closed = false;
         }
         else {
-            const collectibles = this.tilemapHandler.filterObjectsByTypes(ObjectTypes.COLLECTIBLE);
-            if (!collectibles || this.checkIfAllCollectiblesCollected(collectibles)) {
-                super.draw(spriteCanvas);
-                this.closed = false;
-            }
-            else {
-                super.draw(spriteCanvas, this.closedFinishedFlagYSpritePos)
-                this.closed = true;
-            }
+            super.draw(spriteCanvas, this.closedFinishedFlagYSpritePos)
+            this.closed = true;
         }
     }
 }

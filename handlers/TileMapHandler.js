@@ -52,9 +52,16 @@ class TileMapHandler {
         this.levelObjects = [];
         this.levelObjects = this.createInitialObjects(WorldDataHandler.levels[levelIndex].levelObjects);
         this.deko = this.createInitialDeko(WorldDataHandler.levels[levelIndex].deko);
+        this.enemies = this.createInitialObjects(WorldDataHandler.levels[levelIndex].enemies);
+        this.weapons = this.createInitialObjects(
+            (WorldDataHandler.levels[levelIndex].weapons || []).filter(w =>
+                !this.player.weapons.some(pw => pw.type === w.type)
+            )
+        );
         this.paths = this.createInitialPaths(WorldDataHandler.levels[levelIndex].paths);
         this.effects = EffectsHandler.getCurrentLevelEffects(this.currentLevel);
         this.currentGeneralFrameCounter = 0;
+        this.defeatedEnemyCount = 0;
         this.player.resetAll();
         WorldColorChanger.changeLevelColor(levelIndex);
         this.changeTileCanvasSize();
@@ -124,8 +131,15 @@ class TileMapHandler {
             const { type, x, y } = initialObject;
 
             const extraAttributes = initialObject.extraAttributes ? initialObject.extraAttributes : {};
-            levelObjects.push(new ObjectTypes.objectToClass[type](x,
-                y, this.tileSize, type, this, extraAttributes));
+            const createdObject = new ObjectTypes.objectToClass[type](x,
+                y, this.tileSize, type, this, extraAttributes);
+            if (typeof Enemy !== "undefined" && createdObject instanceof Enemy) {
+                EnemyTypeAttributesHandler.applyToInstance(createdObject);
+            }
+            if (typeof Weapon !== "undefined" && createdObject instanceof Weapon) {
+                WeaponTypeAttributesHandler.applyToInstance(createdObject);
+            }
+            levelObjects.push(createdObject);
         });
         return levelObjects;
     }
@@ -220,8 +234,16 @@ class TileMapHandler {
         if (isPlayMode || LayerHandler.tileLayer) {
             this.displayStaticTiles();
         }
+        // enemies
+        this.displayObjects(this.enemies);
+        // weapons in level (not yet picked up)
+        this.displayObjects(this.weapons);
         // projectiles
         this.displayObjects(this.layers[4]);
+    }
+
+    displayEnemies(enemies) {
+
     }
 
     splitLevelObjectsInLayers() {
@@ -281,6 +303,7 @@ class TileMapHandler {
         for (var i = this.levelObjects.length; i >= 0; i--) {
             const laserObject = this.levelObjects[i]?.type === ObjectTypes.LASER;
             if (this.levelObjects[i]?.type === ObjectTypes.CANON_BALL || this.levelObjects[i]?.type === ObjectTypes.ROCKET
+                || this.levelObjects[i]?.type === ObjectTypes.BULLET
                 || laserObject) {
                 !laserObject && SFXHandler.createSFX(this.levelObjects[i].x, this.levelObjects[i].y, 1)
                 this.levelObjects.splice(i, 1);
@@ -290,7 +313,11 @@ class TileMapHandler {
             }
         }
         this.paths.forEach(path => path.resetObjectsToInitialPosition());
+        DeadEnemyHandler.reset();
+        this.defeatedEnemyCount = 0;
         //Check here if tilemaphandler is missing objects from WorldDataHandler (if somethign was deleted)
+        this.enemies.length = 0;
+        this.enemies = this.createInitialObjects(WorldDataHandler.levels[this.currentLevel].enemies);
     }
 
     filterObjectsByTypes(types) {

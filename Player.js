@@ -154,10 +154,12 @@ class Player {
         this.invisible = false;
         this.fixedSpeed = false;
         this.onIce = false;
+        this.touchedTrampoline = false;
         this.temporaryDoubleJump = false;
         this.currentTrailFrame = 0;
         this.movingPlatformKey = null;
         this.onMovingPlatform = false;
+        this.wallJumpSlide = false;
 
         if (resetAutoRun) {
             this.fixedSpeedLeft = false;
@@ -204,12 +206,18 @@ class Player {
         this.resetTemporaryAttributes();
     }
 
+    get activeWeapon() {
+        return this.weapons[this.activeWeaponIndex];
+    }
+
     setAbilities() {
         this.jumpChecked = true;
         this.wallJumpChecked = true;
         this.doubleJumpChecked = false;
         this.dashChecked = false;
         this.runChecked = false;
+        this.weapons = [];
+        this.activeWeaponIndex = 0;
         this.setInitialPowerUps();
     }
 

@@ -178,7 +178,7 @@ class BuildMode {
                 if (Controller.mousePressed && !this.mousePressed) {
                     this.mousePressed = true;
                     //copy sprite
-                    if(Controller.jump) {
+                    if (Controller.jump) {
                         this.copySprite(currentTile, allObjectsAtCurrentTile);
                     }
                     //Tooltip if click on occupied tile again
@@ -195,13 +195,13 @@ class BuildMode {
     }
 
     static copySprite(currentTile, allObjectsAtCurrentTile) {
-        if(currentTile) {
+        if (currentTile) {
             const copiedSprite = SpritePixelArrays.allSprites.find((sprite) => sprite.name === currentTile);
             if (copiedSprite) {
                 TabNavigation.setSelectedSprite(copiedSprite, 0);
             }
         }
-        else if(allObjectsAtCurrentTile) {
+        else if (allObjectsAtCurrentTile) {
             const topSpriteDescriptiveName = allObjectsAtCurrentTile.reverse()[0]?.spriteObject?.[0].descriptiveName;
             const copiedSprite = SpritePixelArrays.allSprites.find((sprite) => sprite.descriptiveName === topSpriteDescriptiveName);
             if (copiedSprite) {
@@ -231,14 +231,31 @@ class BuildMode {
     }
 
     static setSingleObject(tilePosX, tilePosY) {
-        let { levelObjects, deko } = this.tileMapHandler;
-
+        let { levelObjects, deko, enemies } = this.tileMapHandler;
         //Tiles are numbers, other objects are not
         if (isNaN(this.currentSelectedObject?.name)) {
             //deko
             if (this.currentSelectedObject.name === ObjectTypes.DEKO) {
                 WorldDataHandler.levels[this.tileMapHandler.currentLevel].deko.push({ x: tilePosX, y: tilePosY, index: this.currentSelectedObject.index ? this.currentSelectedObject.index : 0 });
                 deko.push(new Deko(tilePosX, tilePosY, tileMapHandler.tileSize, this.currentSelectedObject.index));
+            }
+            //enemies
+            else if (this.currentSelectedObject.type === SpritePixelArrays.SPRITE_TYPES.enemies) {
+                WorldDataHandler.levels[this.tileMapHandler.currentLevel].enemies.push({ x: tilePosX, y: tilePosY, type: this.currentSelectedObject.name });
+                const newEnemy = new ObjectTypes.objectToClass[this.currentSelectedObject.name]
+                    (tilePosX, tilePosY, tileMapHandler.tileSize, this.currentSelectedObject.name, this.tileMapHandler, {});
+                // Apply the type's edited attributes so a newly placed enemy matches others of its
+                // type instead of falling back to constructor defaults until the level is reset.
+                EnemyTypeAttributesHandler.applyToInstance(newEnemy);
+                enemies.push(newEnemy);
+            }
+            //weapons
+            else if (this.currentSelectedObject.type === SpritePixelArrays.SPRITE_TYPES.weapons) {
+                WorldDataHandler.levels[this.tileMapHandler.currentLevel].weapons.push({ x: tilePosX, y: tilePosY, type: this.currentSelectedObject.name });
+                const newWeapon = new ObjectTypes.objectToClass[this.currentSelectedObject.name]
+                    (tilePosX, tilePosY, tileMapHandler.tileSize, this.currentSelectedObject.name, this.tileMapHandler, {});
+                WeaponTypeAttributesHandler.applyToInstance(newWeapon);
+                this.tileMapHandler.weapons.push(newWeapon);
             }
             //objects
             else {
@@ -310,6 +327,8 @@ class BuildMode {
         // Objects can be objects, or tiles that don't have value 0 (like blue blocks in the beginning)
         const objectsHoveringOver = allObjectsAtCurrentTile.filter(o =>
             (o.spriteObject[0].type === SpritePixelArrays.SPRITE_TYPES.object ||
+                o.spriteObject[0].type === SpritePixelArrays.SPRITE_TYPES.enemies ||
+                o.spriteObject[0].type === SpritePixelArrays.SPRITE_TYPES.weapons ||
                 SpritePixelArrays.sometimesPassableBlocks.includes(o.type)) &&
             o.type !== ObjectTypes.PATH_POINT && !SpritePixelArrays.backgroundSprites.includes(o.type) && !SpritePixelArrays.foregroundSprites.includes(o.type));
         const pathsHoveringOver = allObjectsAtCurrentTile.filter(o => o.type === ObjectTypes.PATH_POINT);
@@ -318,7 +337,10 @@ class BuildMode {
         const decoHoveringOver = allObjectsAtCurrentTile.filter(o => o.type === SpritePixelArrays.SPRITE_TYPES.deko);
 
         //Objects
-        if (this.currentSelectedObject?.type === SpritePixelArrays.SPRITE_TYPES.object && !SpritePixelArrays.backgroundSprites.includes(this.currentSelectedObject?.name)) {
+        if ((this.currentSelectedObject?.type === SpritePixelArrays.SPRITE_TYPES.object ||
+            this.currentSelectedObject?.type === SpritePixelArrays.SPRITE_TYPES.enemies ||
+            this.currentSelectedObject?.type === SpritePixelArrays.SPRITE_TYPES.weapons)
+            && !SpritePixelArrays.backgroundSprites.includes(this.currentSelectedObject?.name)) {
             //Moving platform
             if (SpritePixelArrays.movingPlatformSprites.includes(this.currentSelectedObject?.name)) {
                 const touchingOtherMovingPlatForm = this.tileMapHandler.layers[3].some(movingPlatform =>
@@ -399,17 +421,21 @@ class BuildMode {
                 const finishFlagToolTip = ObjectsTooltipElementsRenderer.finishFlagToolTip(currentObject, this.tileMapHandler);
                 content.appendChild(finishFlagToolTip);
             }
+            else if (currentObject?.type === ObjectTypes.ENEMY_SPAWNER) {
+                const enemySpawnerToolTip = ObjectsTooltipElementsRenderer.enemySpawnerToolTip(currentObject);
+                content.appendChild(enemySpawnerToolTip);
+            }
             if (spriteObject.directions && currentObject?.type !== ObjectTypes.PATH_POINT) {
                 const rotationWrapper = ObjectsTooltipElementsRenderer.createRotationHandlerForObjects(currentObject, spriteObject.directions);
                 content.appendChild(rotationWrapper);
             }
-            if (spriteObject.changeableAttributes && currentObject?.type !== ObjectTypes.FINISH_FLAG) {
+            if (spriteObject.changeableAttributes && currentObject?.type !== ObjectTypes.FINISH_FLAG && currentObject?.type !== ObjectTypes.ENEMY_SPAWNER) {
                 spriteObject.changeableAttributes.forEach(attribute => {
                     if (attribute.name === SpritePixelArrays.changeableAttributeTypes.dialogue) {
                         const dialogueWindow = ObjectsTooltipElementsRenderer.createDialogueWindow(attribute, currentObject);
                         content.appendChild(dialogueWindow);
                     }
-                    else if(attribute.formElement === SpritePixelArrays.changeableAttributeFormElements.events) {
+                    else if (attribute.formElement === SpritePixelArrays.changeableAttributeFormElements.events) {
                         const eventsToolTip = EventsTooltipRenderer.renderEventsTooltip(currentObject);
                         content.appendChild(eventsToolTip);
                     }
@@ -463,7 +489,7 @@ class BuildMode {
                 }
             });
         });
-        ["levelObjects", "deko"].forEach(levelObjectsArr => {
+        ["levelObjects", "deko", "enemies", "weapons"].forEach(levelObjectsArr => {
             loop1:
             for (var i = 0; i < this.tileMapHandler[levelObjectsArr].length; i++) {
                 const levelObject = this.tileMapHandler[levelObjectsArr][i];
@@ -543,6 +569,8 @@ class BuildMode {
                 const { tilePosX, tilePosY } = positionToRemove;
                 this.removeFromData("levelObjects", tilePosX, tilePosY);
                 this.removeFromData("deko", tilePosX, tilePosY);
+                this.removeFromData("enemies", tilePosX, tilePosY);
+                this.removeFromData("weapons", tilePosX, tilePosY);
                 LayerHandler.objectLayer && PathBuildHandler.removePathFromData(tilePosX, tilePosY, this.objectsDeletedInOneGo);
             })
         }

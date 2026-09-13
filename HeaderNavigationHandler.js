@@ -1,9 +1,9 @@
 function navDropDownClick(event, id = "myDropdown") {
     event.stopPropagation();
     const collection = document.getElementsByClassName("dropdown-content");
-    if(collection.length) {
+    if (collection.length) {
         for (let element of collection) {
-            if(element.id && element.id !== id) {
+            if (element.id && element.id !== id) {
                 closeSpecificDropdown(element.id);
             }
         }
@@ -12,32 +12,70 @@ function navDropDownClick(event, id = "myDropdown") {
 }
 
 function changeView(value) {
-    if(value === "sounds") {
+    if (value === "sounds") {
         document.getElementById("gameView").style.display = "none";
         document.getElementById("imageView").style.display = "none";
+        document.getElementById("enemyView").style.display = "none";
+        document.getElementById("weaponView").style.display = "none";
         document.getElementById("soundView").style.display = "flex";
         document.getElementById("gameViewCheckmark").style.display = "none";
         document.getElementById("imageViewCheckmark").style.display = "none";
         document.getElementById("soundViewCheckmark").style.display = "block";
+        document.getElementById("enemyViewCheckmark").style.display = "none";
+        document.getElementById("weaponViewCheckmark").style.display = "none";
         SoundHandlerRenderer.createSoundOverview();
     }
-    else if(value === "game"){
+    else if (value === "game") {
         document.getElementById("gameView").style.display = "block";
         document.getElementById("soundView").style.display = "none";
         document.getElementById("imageView").style.display = "none";
+        document.getElementById("enemyView").style.display = "none";
+        document.getElementById("weaponView").style.display = "none";
         document.getElementById("gameViewCheckmark").style.display = "block";
         document.getElementById("imageViewCheckmark").style.display = "none";
         document.getElementById("soundViewCheckmark").style.display = "none";
+        document.getElementById("enemyViewCheckmark").style.display = "none";
+        document.getElementById("weaponViewCheckmark").style.display = "none";
         SoundHandler.checkSongOnLevelReset(tileMapHandler.currentLevel);
         ImageHandler.setBackgroundImage();
+    }
+    else if (value === "enemies") {
+        document.getElementById("enemyView").style.display = "block";
+        document.getElementById("gameView").style.display = "none";
+        document.getElementById("soundView").style.display = "none";
+        document.getElementById("imageView").style.display = "none";
+        document.getElementById("weaponView").style.display = "none";
+        document.getElementById("enemyViewCheckmark").style.display = "block";
+        document.getElementById("gameViewCheckmark").style.display = "none";
+        document.getElementById("imageViewCheckmark").style.display = "none";
+        document.getElementById("soundViewCheckmark").style.display = "none";
+        document.getElementById("weaponViewCheckmark").style.display = "none";
+        EnemiesAttributesRenderer.createEnemyOverview();
+    }
+    else if (value === "weapons") {
+        document.getElementById("weaponView").style.display = "block";
+        document.getElementById("enemyView").style.display = "none";
+        document.getElementById("gameView").style.display = "none";
+        document.getElementById("soundView").style.display = "none";
+        document.getElementById("imageView").style.display = "none";
+        document.getElementById("weaponViewCheckmark").style.display = "block";
+        document.getElementById("enemyViewCheckmark").style.display = "none";
+        document.getElementById("gameViewCheckmark").style.display = "none";
+        document.getElementById("imageViewCheckmark").style.display = "none";
+        document.getElementById("soundViewCheckmark").style.display = "none";
+        WeaponAttributesRenderer.createWeaponOverview();
     }
     else {
         document.getElementById("gameView").style.display = "none";
         document.getElementById("imageView").style.display = "flex";
         document.getElementById("soundView").style.display = "none";
+        document.getElementById("enemyView").style.display = "none";
+        document.getElementById("weaponView").style.display = "none";
         document.getElementById("gameViewCheckmark").style.display = "none";
         document.getElementById("imageViewCheckmark").style.display = "block";
         document.getElementById("soundViewCheckmark").style.display = "none";
+        document.getElementById("enemyViewCheckmark").style.display = "none";
+        document.getElementById("weaponViewCheckmark").style.display = "none";
         ImageHandlerRenderer.createImageOverview();
         ImageHandler.showFirstPreviewImage();
     }
@@ -55,9 +93,9 @@ function closeSpecificDropdown(id) {
 window.onclick = function (e) {
     if (!e.target.matches('.dropbtn') && !e.target.matches('.dropdown-nav-item')) {
         const collection = document.getElementsByClassName("dropdown-content");
-        if(collection.length) {
+        if (collection.length) {
             for (let element of collection) {
-                if(element.id) {
+                if (element.id) {
                     closeSpecificDropdown(element.id);
                 }
             }

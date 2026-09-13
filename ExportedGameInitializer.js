@@ -1,6 +1,7 @@
 class ExportedGameInitializer {
     static initializeExportedGame(allData) {
         WorldDataHandler.levels = [...allData.levels];
+        WorldDataHandler.ensureLevelDataIntegrity();
         WorldDataHandler.gamesName = allData.gamesName;
         WorldDataHandler.endingMessage = allData.endingMessage;
         WorldDataHandler.effects = allData.effects;
@@ -38,6 +39,8 @@ class ExportedGameInitializer {
         for (const [key, value] of Object.entries(allData.playerObject)) {
             player[key] = value;
         }
+        WorldDataHandler.enemyTypeAttributes = allData.enemyTypeAttributes || {};
+        WorldDataHandler.weaponTypeAttributes = allData.weaponTypeAttributes || {};
         for (const [key, value] of Object.entries(allData.sprites)) {
             if (key !== "TELEPORT" && key !== "TELEPORT2" && key !== "SFX4") {
                 SpritePixelArrays[key] = value;

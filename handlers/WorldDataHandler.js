@@ -23,6 +23,8 @@ class WorldDataHandler {
         this.backgroundImageScrollSpeed = 0.2;
         this.textColor = 'ffffff';
         this.effects = [];
+        this.enemyTypeAttributes = {};
+        this.pickedUpWeaponTypes = new Set();
         this.resetFontParameters();
     }
 
@@ -78,6 +80,8 @@ class WorldDataHandler {
             levelObjects: [],
             deko: [],
             paths: [],
+            enemies: [],
+            weapons: [],
             backgroundColor: "transp",
             zoomFactor: 1,
             song: null,
@@ -87,7 +91,24 @@ class WorldDataHandler {
     }
 
     static createDemoLevel() {
-        return MathHelpers.getRandomItemFromArray(allDemoLevels);
+        const demoLevel = MathHelpers.getRandomItemFromArray(allDemoLevels);
+        demoLevel.enemies = [];
+        demoLevel.weapons = [];
+        return demoLevel;
+    }
+
+    /**
+     * Older / hand-made imports may be missing some per-level arrays (enemies were added later).
+     * Ensure every level has them so the editor can add objects without hitting an undefined array.
+     */
+    static ensureLevelDataIntegrity() {
+        (this.levels || []).forEach(level => {
+            level.levelObjects = level.levelObjects || [];
+            level.deko = level.deko || [];
+            level.paths = level.paths || [];
+            level.enemies = level.enemies || [];
+            level.weapons = level.weapons || [];
+        });
     }
 
     static exampleLevel(withDefaultImage = false) {
@@ -109,6 +130,8 @@ class WorldDataHandler {
             levelObjects: levelObjects,
             deko: [],
             paths: [],
+            enemies: [],
+            weapons: [],
             backgroundColor: "transp",
             zoomFactor: 1,
             song: null,

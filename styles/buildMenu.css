@@ -436,6 +436,10 @@ input:checked+.switchSlider:before {
     border-radius: 0;
 }
 
+.buildTabButton {
+    padding: 8px;
+}
+
 .tabButton.active,
 .colorTabButton.active {
     border-bottom: none;
@@ -473,15 +477,177 @@ input:checked+.switchSlider:before {
   background-color: #e1fae1;
 }
 
-#tabWrapper {
+#tabWrapper,
+#enemyTabWrapper {
     font-size: 0;
     display: flex;
 }
 
-#tabContent {
+#tabContent,
+#enemyTabContent {
     border: 1px solid lightgrey;
     border-top: none;
     padding: 12px;
+}
+
+/* Enemy editor: make section labels (e.g. "Activate when", "Movement behaviour") bold */
+#enemyDetailsPanel .labelText {
+    font-weight: bold;
+}
+
+/* Enemy editor: small helper labels for the conditional number inputs */
+#enemyDetailsPanel .enemySubLabel {
+    color: grey;
+    font-style: oblique;
+    font-size: 10px;
+}
+
+/* Enemy editor: attack phases (collapsible details/summary) */
+.attackPhase {
+    margin-bottom: 16px;
+}
+
+.attackPhaseSummary {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    font-weight: bold;
+    cursor: pointer;
+    text-transform: uppercase;
+    list-style: none;
+}
+
+.attackPhaseSummary::-webkit-details-marker {
+    display: none;
+}
+
+.attackPhase[open] > .attackPhaseSummary::before {
+    transform: rotate(90deg);
+}
+
+.attackPhaseTitle {
+    flex: 1;
+}
+
+/* "Change phase after" control beneath the Add phase button */
+.phaseChangeRow {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.phaseChangeValueInput {
+    width: 80px;
+    flex-shrink: 0;
+}
+
+.phaseChangeModeSelect {
+    flex: 1;
+}
+
+/* Wider modal for the bullet editor */
+#bulletModal {
+    width: 560px;
+    margin-left: -280px;
+}
+
+/* Bullet sprite dropdown + preview */
+.bulletSpriteRow {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-top: 4px;
+}
+
+.bulletSpriteSelect {
+    width: 160px;
+    flex-shrink: 0;
+}
+
+.bulletSpritePreview {
+    border: 1px solid #ccc;
+    image-rendering: pixelated;
+}
+
+.bulletSliderLabel {
+    display: block;
+    margin-bottom: 6px;
+}
+
+.bulletSpeedSlider,
+.bulletGravitySlider,
+.bulletDecelerationSlider,
+.bulletRandomAngleSlider {
+    width: 160px;
+}
+
+
+/* Angle selector (picker circle + value input) in the bullet modal */
+.angleSection {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    margin-top: 8px;
+}
+
+.angleValueWrapper {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+}
+
+.angleInput {
+    width: 70px;
+}
+
+.angleUnit {
+    font-weight: bold;
+}
+
+.anglePickerCircle {
+    position: relative;
+    width: 80px;
+    height: 80px;
+    border-radius: 50%;
+    border: 2px solid lightgrey;
+    background: #f4f4f4;
+    cursor: pointer;
+    flex-shrink: 0;
+}
+
+.anglePickerHand {
+    position: absolute;
+    left: 50%;
+    top: 50%;
+    width: 34px;
+    height: 2px;
+    background: #2b8a3e;
+    transform-origin: 0 50%;
+    transform: rotate(0deg);
+    pointer-events: none;
+}
+
+.anglePickerHand::after {
+    content: '';
+    position: absolute;
+    right: -3px;
+    top: -3px;
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: #2b8a3e;
+}
+
+.anglePickerCenter {
+    position: absolute;
+    left: 50%;
+    top: 50%;
+    width: 8px;
+    height: 8px;
+    margin: -4px 0 0 -4px;
+    border-radius: 50%;
+    background: #333;
+    pointer-events: none;
 }
 
 .tabPaginationIcon {
